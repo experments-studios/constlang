@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="ConstLang Logo" width="120"/>
+  <img src="icon.png" alt="ConstLang Logo" width="120"/>
 </p>
 
 # ConstLang Programing Language 
