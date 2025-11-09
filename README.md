@@ -2,7 +2,7 @@
   <img src="logo.png" alt="ConstLang Logo" width="120"/>
 </p>
 
-# 🌀 ConstLang Language Reference
+# ConstLang Language Reference
 
 ConstLang is a lightweight browser-based programming language that compiles into JavaScript.  
 It supports modular programming, macros, and standard JavaScript control flow.  
