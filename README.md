@@ -1,8 +1,7 @@
-<p align="center">
-  <img src="logo.png" alt="ConstLang Logo" width="100" height="100"/>
+<p>
+  <img src="logo.png" alt="ConstLang Logo" width="60" height="60" style="vertical-align: middle; margin-right: 10px;">
+  <span style="font-size: 28px; font-weight: bold; vertical-align: middle;">ConstLang programing language</span>
 </p>
-
-# 🧠 ConstLang — Complete Command Reference
 
 ConstLang is a lightweight browser-based programming language that compiles to JavaScript.
 
