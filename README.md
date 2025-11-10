@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="ConstLang Logo" width="80" height="80"/>
+  <img src="logo.png" alt="ConstLang Logo" width="100" height="100"/>
 </p>
 
 # 🧠 ConstLang — Complete Command Reference
