@@ -1,46 +1,68 @@
-<p align="center">
-  <img src="icon.png" alt="ConstLang Logo" width="120"/>
-</p>
+# ![ConstLang Logo](logo.png)
+# 🧠 ConstLang — Complete Command Reference
 
-# ConstLang Programing Language 
-
-## Copyright © 2025 İlkin Yahya
-
-ConstLang is a lightweight browser-based programming language that compiles into JavaScript.  
-It supports modular programming, macros, and standard JavaScript control flow.  
-It is ideal for learning programming concepts or rapid prototyping directly in the browser.
+ConstLang is a lightweight browser-based programming language that compiles to JavaScript.
 
 ---
 
-## 📦 Detailed Command Reference
+## ⚙️ Compiler Commands (3)
 
-| Command / Directive | Description | Usage Example | JavaScript Output / Notes |
-|--------------------|------------|---------------|--------------------------|
-| `set var = value;` | Declares a variable. ConstLang automatically converts it to `let` in JS. | ```clg set count = 5; ``` | `let count = 5;` |
-| `console.print(expr);` | Prints an expression or message to the console. Converts to `console.log()`. | ```clg console.print("Hello!"); ``` | `console.log("Hello!");` |
-| `alert.data(expr);` | Shows a popup alert with the given message. | ```clg alert.data("Done!"); ``` | `alert("Done!");` |
-| `addon() { ... }` | Raw JavaScript block. Anything inside is included as-is. Useful for complex JS logic. | ```clg addon() { let x = 10; } ``` | `{ let x = 10; }` |
-| `#import file.clg` | Imports another ConstLang file from the project. Supports modular design. | ```clg #import utils.clg ``` | *(No JS output; preprocessor only)* |
-| `#install URL` | Downloads and includes external code from a URL. Useful for libraries. | ```clg #install https://cdn.example.com/lib.js ``` | *(No JS output; preprocessor only)* |
-| `new.command()[ ... command() ... ]` | Defines a custom macro. Allows creating new language commands. | ```clg new.command()[ print ${cmd^text} command() console.log(${cmd^text}); ] ``` | Expands to JavaScript as specified in the macro |
-| `if (condition) { ... }` | Standard conditional. Executes block if condition is true. | ```clg if (x > 5) { console.print(x); } ``` | Same as JS |
-| `else if (condition) { ... }` | Conditional branch after `if`. | ```clg else if (x == 5) { console.print("Equal"); } ``` | Same as JS |
-| `else { ... }` | Default branch for `if`. | ```clg else { console.print("Less"); } ``` | Same as JS |
-| `for (init; condition; increment) { ... }` | For loop with initializer, condition, increment. | ```clg for (set i=0; i<3; i=i+1) { console.print(i); } ``` | Same as JS |
-| `while (condition) { ... }` | Executes a block repeatedly while condition is true. | ```clg while (i<5) { i=i+1; } ``` | Same as JS |
-| `do { ... } while (condition);` | Executes a block at least once, then checks the condition. | ```clg do { i=i+1; } while (i<5); ``` | Same as JS |
-| `switch (expr) { case ... }` | Switch-case conditional structure. | ```clg switch(x){case 1:console.print("One");break;} ``` | Same as JS |
-| `break` | Exits the nearest loop or switch block. | ```clg break; ``` | Same as JS |
-| `continue` | Skips to the next iteration of the nearest loop. | ```clg continue; ``` | Same as JS |
-
-> ⚠️ Note: Any standard JavaScript code not recognized as a ConstLang-specific command passes through unchanged.
+| Command | Description | Example |
+|---------|-------------|---------|
+| `compiler.add()` | Opens file picker to load `.clg` files. | `compiler.add();` |
+| `compiler.start()` | Starts compilation process. | `compiler.start();` |
+| `compiler.download()` | Downloads compiled JS file as `output.js`. | `compiler.download();` |
 
 ---
 
-## 🧩 Example Code (All Inside Markdown)
+## 🧩 ConstLang Commands (16)
 
-### Variables & Console
+| Command | Description | JavaScript Output | Example |
+|---------|-------------|-----------------|---------|
+| `set <var> = <value>;` | Declare variable | `let <var> = <value>;` | `set x = 5;` → `let x = 5;` |
+| `console.print(<expr>);` | Print to console | `console.log(<expr>);` | `console.print("Hi");` |
+| `alert.data(<expr>);` | Browser alert | `alert(<expr>);` | `alert.data("Done");` |
+| `addon() { ... }` | Embed raw JS | Inline JS | `addon() { console.log("Hi"); }` |
+| `#import <file.clg>` | Import another `.clg` file | N/A | `#import utils.clg` |
+| `#install <url>` | Download and include remote code | Inline JS | `#install https://cdn.com/lib.js` |
+| `new.command()[ ... command() ... ]` | Define macro | Expands to JS template | *(See macro section)* |
+| `if (condition) { ... }` | Conditional execution | Same as JS | `if (x>0){console.print(x);}` |
+| `else if (condition) { ... }` | Additional conditional | Same as JS | `else if (x==0){console.print("Zero");}` |
+| `else { ... }` | Fallback conditional | Same as JS | `else{console.print("Negative");}` |
+| `for (init; condition; step) { ... }` | For loop | Same as JS | `for (let i=0;i<3;i++){console.print(i);}` |
+| `while (condition) { ... }` | While loop | Same as JS | `while(x<5){x=x+1;}` |
+| `do { ... } while (condition);` | Do-while loop | Same as JS | `do{x=x+1;}while(x<5);` |
+| `switch (expr) { case ... }` | Multi-case selection | Same as JS | `switch(x){case 1:console.print("1");break;}` |
+| `break` | Exit nearest loop/switch | `break;` | `break;` |
+| `continue` | Skip iteration | `continue;` | `continue;` |
+
+---
+
+## 🧠 Macro Variable Syntax (1)
+
+| Syntax | Description | Example | Output |
+|--------|-------------|---------|--------|
+| `${cmd^var}` | Macro placeholder for custom command variables | `new.command()[ print ${cmd^msg} command() console.log(${cmd^msg}); ] print "Hello";` | `console.log("Hello");` |
+
+---
+
+## 📘 Example Program
+
 ```clg
-set name = "ConstLang";
-console.print("Welcome to " + name);
-alert.data("Initialization complete!");
+set x = 0;
+while (x < 3) {
+    console.print(x);
+    set x = x + 1;
+}
+
+if (x == 3) {
+    alert.data("Done!");
+}
+
+new.command()[
+    print ${cmd^msg}
+    command()
+    console.log(${cmd^msg});
+]
+
+print "Hello ConstLang!";
