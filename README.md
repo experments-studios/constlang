@@ -1,7 +1,10 @@
 <p>
   <img src="logo.png" alt="ConstLang Logo" width="60" height="60" style="vertical-align: middle; margin-right: 10px;">
-  <span style="font-size: 28px; font-weight: bold; vertical-align: middle;">ConstLang programing language</span>
+  <span style="font-size: 28px; font-weight: bold; vertical-align: middle;"></span>
 </p>
+
+# ConstLang programing language
+## COPYING © 2025 İlkin Yahya. All rights reserved.
 
 ConstLang is a lightweight browser-based programming language that compiles to JavaScript.
 
