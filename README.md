@@ -1,4 +1,7 @@
-# ![ConstLang Logo](logo.png){width=80}
+<p align="center">
+  <img src="logo.png" alt="ConstLang Logo" width="80" height="80"/>
+</p>
+
 # 🧠 ConstLang — Complete Command Reference
 
 ConstLang is a lightweight browser-based programming language that compiles to JavaScript.
