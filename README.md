@@ -4,7 +4,7 @@
 </p>
 
 # ConstLang programing language
-## COPYING © 2025 İlkin Yahya. All rights reserved.
+## © 2025 İlkin Yahya. All rights reserved.
 
 ConstLang is a lightweight browser-based programming language that compiles to JavaScript.
 
