@@ -1,416 +1,257 @@
 (function(global) {
 
-       
+    let compiledJSCache = null;
+    let extractedHTMLCache = ""; 
+    const entryPoint = 'main.clg';
 
-        let compiledJSCache = null;
+    function _downloadFile(filename, text) {
+        const element = document.createElement('a');
+        let mimeType = 'text/plain';
+        if(filename.endsWith('.html')) mimeType = 'text/html';
+        
+        element.setAttribute('href', `data:${mimeType};charset=utf-8,` + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
 
-        const entryPoint = 'main.clg';
+    async function _traverseDirectory(handle, path = "") {
+        for await (const entry of handle.values()) {
+            if (entry.kind === 'file') {
+                const file = await entry.getFile();
+                if (entry.name.endsWith('.clg')) {
+                    const content = await file.text();
+                    sessionStorage.setItem(entry.name, content);
+                    console.log(`[READ] ${entry.name}`);
+                }
+            } else if (entry.kind === 'directory') {
+                await _traverseDirectory(entry, path ? `${path}/${entry.name}` : entry.name);
+            }
+        }
+    }
 
-
-
-        function _downloadFile(filename, text) {
-
-            const element = document.createElement('a');
-
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-
-            element.setAttribute('download', filename);
-
-            element.style.display = 'none';
-
-            document.body.appendChild(element);
-
-            element.click();
-
-            document.body.removeChild(element);
-
+    async function _bundle(startFile) {
+        console.log(`Bundling....'${startFile}'`);
+        
+        const fileCache = {};
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key.endsWith('.clg')) {
+                fileCache[key] = sessionStorage.getItem(key);
+            }
         }
 
-
-
-        async function _bundle(startFile) {
-
-            console.log(`Bundling....'${startFile}'`);
-
-           
-
-            const fileCache = {};
-
-            for (let i = 0; i < sessionStorage.length; i++) {
-
-                const key = sessionStorage.key(i);
-
-                if (key.endsWith('.clg')) {
-
-                    fileCache[key] = sessionStorage.getItem(key);
-
-                }
-
-            }
-
-
-
-            if (!fileCache[startFile]) {
-
-                console.error(`NO FILE;(${startFile})`);
-
-                return null;
-
-            }
-
-
-
-            const processedFiles = new Set();
-
-            let finalCode = "";
-
-
-
-            async function processFile(filename) {
-
-                if (processedFiles.has(filename)) {
-
-                    return "";
-
-                }
-
-                processedFiles.add(filename);
-
-
-
-                let content = fileCache[filename];
-
-                if (!content) {
-
-                    console.error(`NO FILE;${filename} `);
-
-                    return "";
-
-                }
-
-
-
-                const installRegex = /^\s*#install\s+(.*?);?\s*$/gm;
-
-                const importRegex = /^\s*#import\s+(.*?);?\s*$/gm;
-
-
-
-                let bundledDependencies = "";
-
-
-
-                const installMatches = [...content.matchAll(installRegex)];
-
-                for (const match of installMatches) {
-
-                    const url = match[1].trim();
-
-                    try {
-
-                        console.log(`downloading: ${url}`);
-
-                        const response = await fetch(url);
-
-                        if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-
-                        const remoteCode = await response.text();
-
-                        bundledDependencies += `\n${remoteCode}\n\n`;
-
-                    } catch (e) {
-
-                        console.error(`#install ERROR: #install ${url} `, e.message);
-
-                    }
-
-                }
-
-                content = content.replace(installRegex, '');
-
-
-
-                const importMatches = [...content.matchAll(importRegex)];
-
-                for (const match of importMatches) {
-
-                    const localFile = match[1].trim();
-
-                    bundledDependencies += await processFile(localFile) + "\n\n";
-
-                }
-
-                content = content.replace(importRegex, '');
-
-
-
-                return `\n${bundledDependencies}\n${content}\n`;
-
-            }
-
-
-
-            finalCode = await processFile(startFile);
-
-            console.log("....");
-
-            return finalCode;
-
+        if (!fileCache[startFile]) {
+            console.error(`ENTRY FILE NOT FOUND: (${startFile})`);
+            return null;
         }
 
+        const processedFiles = new Set();
 
+        async function processFile(filename) {
+            if (processedFiles.has(filename)) return "";
+            processedFiles.add(filename);
 
-        function _transpile(constlangCode) {
+            let content = fileCache[filename];
+            if (!content) return "";
 
-            console.log(".....");
+            const installRegex = /^\s*#install\s+(.*?);?\s*$/gm;
+            const importRegex = /^\s*#import\s+(.*?);?\s*$/gm;
+            let bundledDependencies = "";
 
-            let jsCode = constlangCode;
-
-           
-
-            const macros = [];
-
-            const macroRegex = /new\.command\(\)\s*\[\s*([\s\S]*?)\s*command\(\)\s*([\s\S]*?)\s*\]/g;
-
-           
-
-            jsCode = jsCode.replace(macroRegex, (match, pattern, template) => {
-
-                macros.push({
-
-                    pattern: pattern.trim(),
-
-                    template: template.trim()
-
-                });
-
-                return "";
-
-            });
-
-
-
-            if (macros.length > 0) {
-
-                console.log(`${macros.length} ....`);
-
-            }
-
-
-
-            for (const macro of macros) {
-
-                const varRegex = /\$\{cmd\^(.*?)\}/g;
-
-                const varNames = [];
-
-                let regexPattern = macro.pattern;
-
-
-
-                regexPattern = regexPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-
-
-                regexPattern = regexPattern.replace(/\\\$\\\{cmd\\\^(.*?)\\\}/g, (match, varName) => {
-
-                    varNames.push(varName);
-
-                    return '([\\s\\S]*?)';
-
-                });
-
-               
-
-                let jsTemplate = macro.template;
-
-                for (let i = 0; i < varNames.length; i++) {
-
-                    jsTemplate = jsTemplate.replace(new RegExp(`\\$\\{cmd\\^${varNames[i]}\\}|\\$\\{${varNames[i]}}`, 'g'), `$${i + 1}`);
-
-                }
-
-
-
+            const installMatches = [...content.matchAll(installRegex)];
+            for (const match of installMatches) {
                 try {
-
-                    jsCode = jsCode.replace(new RegExp(regexPattern, 'gm'), jsTemplate);
-
-                } catch (e) {
-
-                    console.error(`Macro ERROR: ${macro.pattern} -> ${e.message}`);
-
-                }
-
+                    const res = await fetch(match[1].trim());
+                    bundledDependencies += `\n${await res.text()}\n\n`;
+                } catch (e) { console.error("Install Error", e); }
             }
+            content = content.replace(installRegex, '');
 
+            const importMatches = [...content.matchAll(importRegex)];
+            for (const match of importMatches) {
+                bundledDependencies += await processFile(match[1].trim()) + "\n\n";
+            }
+            content = content.replace(importRegex, '');
 
-
-            jsCode = jsCode.replace(/addon\(\)\s*\{([\s\S]*?)\}/g, '$1');
-
-
-
-            jsCode = jsCode.replace(/^set\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-
-
-
-            jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'console.log($1);');
-
-           
-
-            jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'alert($1);');
-            jsCode = jsCode.replace(/console\.input\s*\(([\s\S]*?)\);?/g, 'prompt($1)');
-
-
-
-            console.log("......");
-
-            return jsCode;
-
+            return `\n${bundledDependencies}\n${content}\n`;
         }
 
+        return await processFile(startFile);
+    }
 
+    function _transpile(constlangCode) {
+        console.log("Transpiling code to JavaScript...");
+        let jsCode = constlangCode;
 
-        const compiler = {};
+        jsCode = jsCode.replace(/\/\/.*/g, '');
+        jsCode = jsCode.replace(/\/\*[\s\S]*?\*\//g, '');
 
+        const guiRegex = /gui\s*\(\s*\)\s*\{([\s\S]*?)\}/g;
+        jsCode = jsCode.replace(guiRegex, (match, htmlContent) => {
+            extractedHTMLCache += htmlContent.trim() + "\n";
+            return "";
+        });
 
+        const macros = [];
+        const macroRegex = /new\.command\(\)\s*\[\s*([\s\S]*?)\s*command\(\)\s*([\s\S]*?)\s*\]/g;
+        jsCode = jsCode.replace(macroRegex, (match, pattern, template) => {
+            macros.push({ pattern: pattern.trim(), template: template.trim() });
+            return "";
+        });
 
-        compiler.add = async function() {
+        for (const macro of macros) {
+            let regexPattern = macro.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const varNames = [];
+            regexPattern = regexPattern.replace(/\\\$\\\{cmd\\\^(.*?)\\\}/g, (match, varName) => {
+                varNames.push(varName);
+                return '([\\s\\S]*?)';
+            });
+            
+            let jsTemplate = macro.template;
+            for (let i = 0; i < varNames.length; i++) {
+                jsTemplate = jsTemplate.replace(new RegExp(`\\$\\{cmd\\^${varNames[i]}\\}|\\$\\{${varNames[i]}}`, 'g'), `$${i + 1}`);
+            }
+            try { jsCode = jsCode.replace(new RegExp(regexPattern, 'gm'), jsTemplate); } catch (e) {}
+        }
 
-            try {
+        jsCode = jsCode.replace(/webapi\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
 
-                const handles = await global.showOpenFilePicker({
+        jsCode = jsCode.replace(/get\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
+            'let $2 = await fetch("$1").then(r => r.json());');
 
-                    multiple: true,
+        jsCode = jsCode.replace(/http\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
+            'let $2 = await fetch("$1").then(r => r.text());');
 
-                    types: [{
+        const linkReqRegex = /link\.request\s*\(\s*\)\s*\{([\s\S]*?)\}/g;
+        jsCode = jsCode.replace(linkReqRegex, (match, innerBlock) => {
+            const urlMatch = innerBlock.match(/request\.url\s*\(\s*["']?(.*?)["']?\s*\)/);
+            if (!urlMatch) return "";
+            const urlParam = urlMatch[1];
 
-                        description: 'ConstLang Files',
+            const dataMatch = innerBlock.match(/data\.main\s*\(\s*(.*?)\s*\)/);
+            if (!dataMatch) return "";
+            const actionContent = dataMatch[1];
 
-                        accept: { 'text/plain': ['.clg'] },
-
-                    }],
-
-                });
-
-               
-
-                sessionStorage.clear();
-
-                let fileCount = 0;
-
-               
-
-                for (const handle of handles) {
-
-                    const file = await handle.getFile();
-
-                    if (file.name.endsWith('.clg')) {
-
-                        const content = await file.text();
-
-                        sessionStorage.setItem(file.name, content);
-
-                        console.log(`ADD FILE: ${file.name} (${file.size} bytes)`);
-
-                        fileCount++;
-
+            let output = "";
+            
+            if (actionContent.includes('var=')) {
+                const varName = actionContent.match(/var\s*=\s*["']?([a-zA-Z0-9_]+)["']?/)[1];
+                output = `let ${varName} = new URLSearchParams(window.location.search).get("${urlParam}");`;
+            } else if (actionContent.includes('json.search=')) {
+                const jsonId = actionContent.match(/json\.search\s*=\s*["']?([a-zA-Z0-9_]+)["']?/)[1];
+                output = `
+                {
+                    let _sKey = new URLSearchParams(window.location.search).get("${urlParam}");
+                    if(_sKey && typeof ${jsonId} !== 'undefined' && Array.isArray(${jsonId})) {
+                        let _found = ${jsonId}.filter(item => JSON.stringify(item).includes(_sKey));
+                        console.log("Search Result (${jsonId}):", _found);
+                        ${jsonId} = _found; 
                     }
-
-                }
-
-                console.log(`${fileCount} FILE`);
-
-                console.log(`Start Compiler compiler.start()`);
-
-            } catch (e) {
-
-                if (e.name === "AbortError") {
-
-                    console.warn("Compiler ERROR");
-
-                } else {
-
-                    console.error("ERROR:", e.message);
-
-                }
-
+                }`;
+            } else if (actionContent.includes('html.list=')) {
+                const listId = actionContent.match(/html\.list\s*=\s*["']?([a-zA-Z0-9_]+)["']?/)[1];
+                output = `
+                {
+                    let _sKey = new URLSearchParams(window.location.search).get("${urlParam}");
+                    if(_sKey) {
+                        let _ul = document.getElementById("${listId}");
+                        if(_ul) {
+                            Array.from(_ul.children).forEach(li => {
+                                if(!li.innerText.includes(_sKey)) li.style.display = 'none';
+                            });
+                        }
+                    }
+                }`;
             }
+            return output;
+        });
 
-        };
+        jsCode = jsCode.replace(/addon\(\)\s*\{([\s\S]*?)\}/g, '$1');
+        jsCode = jsCode.replace(/^set\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'console.log($1);');
+        jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'alert($1);');
+        jsCode = jsCode.replace(/console\.input\s*\(([\s\S]*?)\);?/g, 'prompt($1)');
 
+        return jsCode;
+    }
 
+    const compiler = {};
 
-        compiler.start = async function() {
+    compiler.add = async function() {
+        try {
+            const dirHandle = await global.showDirectoryPicker();
+            sessionStorage.clear();
+            extractedHTMLCache = "";
+            
+            console.log("Analyzing directory...");
+            await _traverseDirectory(dirHandle);
+            console.log("Files loaded. Compile with: 'compiler.start()'.");
+        } catch (e) {
+            console.error("Directory selection cancelled or error occurred:", e);
+        }
+    };
 
-            console.log("CONSTLANG Compiler starting", "color: #007bff; font-size: 1.2em;");
+    compiler.start = async function() {
+        console.log("%cCompiler Started...", "color: lime; font-weight: bold;");
+        compiledJSCache = null;
+        extractedHTMLCache = "";
 
-            compiledJSCache = null;
+        const bundledCode = await _bundle(entryPoint);
+        if (!bundledCode) return;
 
-           
+        try {
+            const jsBody = _transpile(bundledCode);
+            
+            compiledJSCache = `
+(async function() {
+    try {
+        ${jsBody}
+    } catch(err) {
+        console.error("Runtime Error:", err);
+    }
+})();`;
 
-            const bundledConstLang = await _bundle(entryPoint);
+            console.log("Compilation Successful. Download with: 'compiler.download()'.");
+            if(extractedHTMLCache) console.log(">> GUI Interface Detected <<");
 
+        } catch (e) {
+            console.error("Compilation Error:", e);
+        }
+    };
 
+    compiler.download = function(filename = "output.js") {
+        if (!compiledJSCache) {
+            console.error("Please run 'compiler.start()' first!");
+            return;
+        }
 
-            if (!bundledConstLang) {
+        console.log("Downloading JS File...");
+        _downloadFile(filename, compiledJSCache);
 
-                console.error("Compiler Error");
+        if (extractedHTMLCache.trim() !== "") {
+            console.log("Downloading HTML File...");
+            const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConstLang Application</title>
+    <style>body { font-family: sans-serif; padding: 20px; }</style>
+</head>
+<body>
+    ${extractedHTMLCache}
+    <script src="${filename}"></script>
+</body>
+</html>`;
+            _downloadFile("index.html", htmlContent);
+        }
+    };
 
-                return;
+    global.compiler = compiler;
+    console.log("Start with: 'compiler.add()'");
 
-            }
-
-
-
-            try {
-
-                compiledJSCache = _transpile(bundledConstLang);
-
-                console.log("Compiler startend");
-
-                console.log(compiledJSCache.split('\n').slice(0, 20).join('\n') + "\n...");
-
-                console.log("-------------------------------------------");
-
-                console.log("download output; compiler.download()");
-
-            } catch (e) {
-
-                console.error("Compiler Error", e);
-
-                console.warn("ConstLang Code:");
-
-                console.log(bundledConstLang);
-
-            }
-
-        };
-
-
-
-        compiler.download = function() {
-
-            if (!compiledJSCache) {
-
-                console.error("to start the compiler; compiler.start()");
-
-                return;
-
-            }
-
-            console.log("downloading file output....");
-
-            _downloadFile("output.js", compiledJSCache);
-
-        };
-
-       
-
-        global.compiler = compiler;
-
-        console.log("");
-
-
-
-    })(window);
+})(window);
