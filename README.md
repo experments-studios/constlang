@@ -24,7 +24,7 @@ ConstLang is a lightweight browser-based programming language that compiles to J
 
 | Command | Description | JavaScript Output | Example |
 |---------|-------------|-----------------|---------|
-| `set <var> = <value>;` | Declare variable | `let <var> = <value>;` | `set x = 5;` → `let x = 5;` |
+| `int , intx , string or ft <var> = <value>;` | Declare variable | `let <var> = <value>;` | `int x = 5;` → `let x = 5;` |
 | `console.print(<expr>);` | Print to console | `console.log(<expr>);` | `console.print("Hi");` |
 | `alert.data(<expr>);` | Browser alert | `alert(<expr>);` | `alert.data("Done");` |
 | `addon() { ... }` | Embed raw JS | Inline JS | `addon() { console.log("Hi"); }` |
@@ -54,7 +54,7 @@ ConstLang is a lightweight browser-based programming language that compiles to J
 ## 📘 Example Program
 
 ```clg
-set x = 0;
+int x = 0;
 while (x < 3) {
     console.print(x);
     set x = x + 1;
