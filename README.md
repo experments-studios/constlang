@@ -57,7 +57,7 @@ ConstLang is a lightweight browser-based programming language that compiles to J
 int x = 0;
 while (x < 3) {
     console.print(x);
-    set x = x + 1;
+    int x = x + 1;
 }
 
 if (x == 3) {
