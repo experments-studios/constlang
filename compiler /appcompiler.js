@@ -83,7 +83,7 @@
     }
 
     function _transpile(constlangCode) {
-        console.log("Transpiling code to JavaScript...");
+        console.log("Compiler loading...");
         let jsCode = constlangCode;
 
         jsCode = jsCode.replace(/\/\/.*/g, '');
@@ -236,11 +236,11 @@
             return;
         }
 
-        console.log("Downloading JS File...");
+        console.log("Downloading CS File...");
         _downloadFile(filename, compiledJSCache);
 
         if (extractedHTMLCache.trim() !== "") {
-            console.log("Downloading HTML File...");
+            console.log("Downloading GUI File...");
             const htmlContent = `
     ${extractedHTMLCache}
 `;
