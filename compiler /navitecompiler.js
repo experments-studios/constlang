@@ -120,10 +120,10 @@
         jsCode = jsCode.replace(/webapi\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
 
         jsCode = jsCode.replace(/get\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
-            'let $2 = await fetch("$1").then(r => r.json());');
+            'string $2 = await fetch("$1").then(r => r.json());');
 
         jsCode = jsCode.replace(/http\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
-            'let $2 = await fetch("$1").then(r => r.text());');
+            'string $2 = await fetch("$1").then(r => r.text());');
 
         const linkReqRegex = /link\.request\s*\(\s*\)\s*\{([\s\S]*?)\}/g;
         jsCode = jsCode.replace(linkReqRegex, (match, innerBlock) => {
@@ -219,6 +219,7 @@
             const jsBody = _transpile(bundledCode);
             
             compiledJSCache = `
+             ${jsBody}
 `;
 
             console.log("Compilation Successful. Download with: 'compiler.download()'.");
