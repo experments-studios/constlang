@@ -170,10 +170,22 @@
         });
 
         jsCode = jsCode.replace(/addon\(\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/^set\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
         jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'console.log($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'alert($1);');
         jsCode = jsCode.replace(/console\.input\s*\(([\s\S]*?)\);?/g, 'prompt($1)');
+        jsCode = jsCode.replace(/open\.window\s*\(([\s\S]*?)\);?/g, 'location.replace($1)');
+        jsCode = jsCode.replace(/if \s*\(([\s\S]*?)\);?/g, 'if ($1)');
+        jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
+        jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
+        jsCode = jsCode.replace(/if \s*\{([\s\S]*?)\};?/g, 'do {$1}');
+        jsCode = jsCode.replace(/^static int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^static intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^static string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^static ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
 
         return jsCode;
     }
@@ -239,7 +251,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ConstLang Application</title>
     <style>body { font-family: sans-serif; padding: 20px; }</style>
 </head>
 <body>
@@ -255,3 +266,4 @@
     console.log("Start with: 'compiler.add()'");
 
 })(window);
+
