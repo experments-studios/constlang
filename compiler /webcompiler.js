@@ -176,16 +176,24 @@
         jsCode = jsCode.replace(/^ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
         jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'console.log($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'alert($1);');
-        jsCode = jsCode.replace(/console\.input\s*\(([\s\S]*?)\);?/g, 'prompt($1)');
         jsCode = jsCode.replace(/open\.window\s*\(([\s\S]*?)\);?/g, 'location.replace($1)');
         jsCode = jsCode.replace(/if \s*\(([\s\S]*?)\);?/g, 'if ($1)');
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
+        jsCode = jsCode.replace(/get\s*\(([\s\S]*?)\);?/g, 'fetch($1)');
         jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
         jsCode = jsCode.replace(/if \s*\{([\s\S]*?)\};?/g, 'do {$1}');
         jsCode = jsCode.replace(/^static int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
         jsCode = jsCode.replace(/^static intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
         jsCode = jsCode.replace(/^static string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
         jsCode = jsCode.replace(/^static ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'console.error($1);');
+        jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'parseInt(promt($1));');
+        jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'parseInt(promt($1));');
+        jsCode = jsCode.replace(/read\.int64\s*\(([\s\S]*?)\);?/g, 'parseInt(promt($1));');
+        jsCode = jsCode.replace(/read\.intx\s*\(([\s\S]*?)\);?/g, 'parseFloat(promt($1));');
+        jsCode = jsCode.replace(/read\.string\s*\(([\s\S]*?)\);?/g, 'promt($1);');
+        jsCode = jsCode.replace(/read\.byte\s*\(([\s\S]*?)\);?/g, '(parseInt(prompt($1)) << 24) >> 24;');
+        jsCode = jsCode.replace(/read\.base64\s*\(([\s\S]*?)\);?/g, 'btoa(promt($1));');
 
         return jsCode;
     }
