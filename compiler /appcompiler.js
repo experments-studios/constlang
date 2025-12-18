@@ -176,7 +176,14 @@
         jsCode = jsCode.replace(/^ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'bool $1 = $2;');
         jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
-        jsCode = jsCode.replace(/console\.input\s*\(([\s\S]*?)\);?/g, 'Console.ReadLine($1);');
+        jsCode = jsCode.replace(/get\s*\(([\s\S]*?)\);?/g, 'await client.GetFromJsonAsync($1);');
+        jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt32(Console.Readline($));');
+        jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt16(Console.Readline($1));');
+        jsCode = jsCode.replace(/read\.int64\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt64(Console.Readline($1));');
+        jsCode = jsCode.replace(/read\.intx\s*\(([\s\S]*?)\);?/g, 'Convert.ToDouble(Console.Readline($1));');
+        jsCode = jsCode.replace(/read\.string\s*\(([\s\S]*?)\);?/g, 'Convert.ToString(Console.Readline($1));');
+        jsCode = jsCode.replace(/read\.byte\s*\(([\s\S]*?)\);?/g, 'Convert.ToSByte(Console.Readline($1));');
+        jsCode = jsCode.replace(/read\.base64\s*\(([\s\S]*?)\);?/g, 'Convert.ToBase64String(Console.Readline($1));');
         jsCode = jsCode.replace(/open\.window\s*\(([\s\S]*?)\);?/g, 'Process.Start($1);');
         jsCode = jsCode.replace(/if \s*\(([\s\S]*?)\);?/g, 'if ($1)');
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
@@ -188,6 +195,7 @@
         jsCode = jsCode.replace(/^static ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const bool $1 = $2;');
         jsCode = jsCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'Console.Error.WriteLine($1);');
         jsCode = jsCode.replace(/system\.beep\(([\s\S]*?)\);?/g, 'Console.Beep($1);');
+        jsCode = jsCode.replace(/read\.title\(([\s\S]*?)\);?/g, 'Console.Write($1);');
 
         return jsCode;
     }
