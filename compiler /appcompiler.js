@@ -171,22 +171,23 @@
 
         jsCode = jsCode.replace(/addon\(\)\s*\{([\s\S]*?)\}/g, '$1');
         jsCode = jsCode.replace(/^int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'int $1 = $2;');
-        jsCode = jsCode.replace(/^intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'dobble $1 = $2;');
+        jsCode = jsCode.replace(/^intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'double $1 = $2;');
         jsCode = jsCode.replace(/^string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'string $1 = $2;');
         jsCode = jsCode.replace(/^ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'bool $1 = $2;');
         jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
-        jsCode = jsCode.replace(/console\.input\s*\(([\s\S]*?)\);?/g, 'Console.ReadLine($1)');
-        jsCode = jsCode.replace(/open\.window\s*\(([\s\S]*?)\);?/g, 'Process.Start($1)');
+        jsCode = jsCode.replace(/console\.input\s*\(([\s\S]*?)\);?/g, 'Console.ReadLine($1);');
+        jsCode = jsCode.replace(/open\.window\s*\(([\s\S]*?)\);?/g, 'Process.Start($1);');
         jsCode = jsCode.replace(/if \s*\(([\s\S]*?)\);?/g, 'if ($1)');
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
         jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
         jsCode = jsCode.replace(/if \s*\{([\s\S]*?)\};?/g, 'do {$1}');
         jsCode = jsCode.replace(/^static int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const int $1 = $2;');
-        jsCode = jsCode.replace(/^static intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const dobble $1 = $2;');
+        jsCode = jsCode.replace(/^static intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const double $1 = $2;');
         jsCode = jsCode.replace(/^static string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const string $1 = $2;');
         jsCode = jsCode.replace(/^static ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const bool $1 = $2;');
         jsCode = jsCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'Console.Error.WriteLine($1);');
+        jsCode = jsCode.replace(/system\.beep\(([\s\S]*?)\);?/g, 'Console.Beep($1);');
 
         return jsCode;
     }
@@ -236,7 +237,7 @@
             return;
         }
 
-        console.log("Downloading CS File...");
+        console.log("Downloading cs File...");
         _downloadFile(filename, compiledJSCache);
 
         if (extractedHTMLCache.trim() !== "") {
