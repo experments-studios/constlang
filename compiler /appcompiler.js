@@ -117,9 +117,9 @@
             try { jsCode = jsCode.replace(new RegExp(regexPattern, 'gm'), jsTemplate); } catch (e) {}
         }
 
-        jsCode = jsCode.replace(/webapi\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        jsCode = jsCode.replace(/naviteapi\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
 
-        jsCode = jsCode.replace(/get\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
+        jsCode = jsCode.replace(/oldcommand1\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
             'string $2 = await fetch("$1").then(r => r.json());');
 
         jsCode = jsCode.replace(/http\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
@@ -144,27 +144,14 @@
                 const jsonId = actionContent.match(/json\.search\s*=\s*["']?([a-zA-Z0-9_]+)["']?/)[1];
                 output = `
                 {
-                    let _sKey = new URLSearchParams(window.location.search).get("${urlParam}");
-                    if(_sKey && typeof ${jsonId} !== 'undefined' && Array.isArray(${jsonId})) {
-                        let _found = ${jsonId}.filter(item => JSON.stringify(item).includes(_sKey));
-                        console.log("Search Result (${jsonId}):", _found);
-                        ${jsonId} = _found; 
+                   Console.Error.WriteLine("Constlang error"); 
                     }
                 }`;
             } else if (actionContent.includes('html.list=')) {
                 const listId = actionContent.match(/html\.list\s*=\s*["']?([a-zA-Z0-9_]+)["']?/)[1];
                 output = `
-                {
-                    let _sKey = new URLSearchParams(window.location.search).get("${urlParam}");
-                    if(_sKey) {
-                        let _ul = document.getElementById("${listId}");
-                        if(_ul) {
-                            Array.from(_ul.children).forEach(li => {
-                                if(!li.innerText.includes(_sKey)) li.style.display = 'none';
-                            });
-                        }
-                    }
-                }`;
+                 Console.Error.WriteLine("Constlang error");
+                `;
             }
             return output;
         });
@@ -177,15 +164,17 @@
         jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/get\s*\(([\s\S]*?)\);?/g, 'await client.GetFromJsonAsync($1);');
-        jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt32(Console.Readline($));');
-        jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt16(Console.Readline($1));');
-        jsCode = jsCode.replace(/read\.int64\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt64(Console.Readline($1));');
-        jsCode = jsCode.replace(/read\.intx\s*\(([\s\S]*?)\);?/g, 'Convert.ToDouble(Console.Readline($1));');
-        jsCode = jsCode.replace(/read\.string\s*\(([\s\S]*?)\);?/g, 'Convert.ToString(Console.Readline($1));');
-        jsCode = jsCode.replace(/read\.byte\s*\(([\s\S]*?)\);?/g, 'Convert.ToSByte(Console.Readline($1));');
-        jsCode = jsCode.replace(/read\.base64\s*\(([\s\S]*?)\);?/g, 'Convert.ToBase64String(Console.Readline($1));');
+        jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt32(Console.ReadLine($));');
+        jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt16(Console.ReadLine($1));');
+        jsCode = jsCode.replace(/read\.int64\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt64(Console.ReadLine($1));');
+        jsCode = jsCode.replace(/read\.intx\s*\(([\s\S]*?)\);?/g, 'Convert.ToDouble(Console.ReadLine($1));');
+        jsCode = jsCode.replace(/read\.string\s*\(([\s\S]*?)\);?/g, 'Convert.ToString(Console.ReadLine($1));');
+        jsCode = jsCode.replace(/read\.byte\s*\(([\s\S]*?)\);?/g, 'Convert.ToSByte(Console.ReadLine($1));');
+        jsCode = jsCode.replace(/read\.base64\s*\(([\s\S]*?)\);?/g, 'Convert.ToBase64String(Console.ReadLine($1));');
         jsCode = jsCode.replace(/open\.window\s*\(([\s\S]*?)\);?/g, 'Process.Start($1);');
-        jsCode = jsCode.replace(/if \s*\(([\s\S]*?)\);?/g, 'if ($1)');
+        jsCode = jsCode.replace(/if \s*\(([\s\S]*?)\);?/g, 'if ($1)');  
+        jsCode = jsCode.replace(/else \s*\(([\s\S]*?)\);?/g, 'else ($1)');
+        jsCode = jsCode.replace(/else if \s*\({[\s\S]*?}\);?/g, 'else if {$1}');
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
         jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
         jsCode = jsCode.replace(/if \s*\{([\s\S]*?)\};?/g, 'do {$1}');
