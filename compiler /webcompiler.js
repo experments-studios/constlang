@@ -181,7 +181,9 @@
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
         jsCode = jsCode.replace(/get\s*\(([\s\S]*?)\);?/g, 'fetch($1)');
         jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
-        jsCode = jsCode.replace(/if \s*\{([\s\S]*?)\};?/g, 'do {$1}');
+        jsCode = jsCode.replace(/else if \s*\(([\s\S]*?)\);?/g, 'else if ($1)');
+        jsCode = jsCode.replace(/else \s*\({[\s\S]*?}\);?/g, 'else {$1}');
+        jsCode = jsCode.replace(/do \s*\{([\s\S]*?)\};?/g, 'do {$1}');
         jsCode = jsCode.replace(/^static int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
         jsCode = jsCode.replace(/^static intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
         jsCode = jsCode.replace(/^static string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
