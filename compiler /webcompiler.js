@@ -169,11 +169,10 @@
             return output;
         });
 
-        jsCode = jsCode.replace(/addon\(\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/^int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
         jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'console.log($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'alert($1);');
         jsCode = jsCode.replace(/open\.window\s*\(([\s\S]*?)\);?/g, 'location.replace($1)');
@@ -184,10 +183,10 @@
         jsCode = jsCode.replace(/else if \s*\(([\s\S]*?)\);?/g, 'else if ($1)');
         jsCode = jsCode.replace(/else \s*\({[\s\S]*?}\);?/g, 'else {$1}');
         jsCode = jsCode.replace(/do \s*\{([\s\S]*?)\};?/g, 'do {$1}');
-        jsCode = jsCode.replace(/^static int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^static intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^static string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^static ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
         jsCode = jsCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'console.error($1);');
         jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'parseInt(promt($1));');
         jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'parseInt(promt($1));');
@@ -196,6 +195,7 @@
         jsCode = jsCode.replace(/read\.string\s*\(([\s\S]*?)\);?/g, 'promt($1);');
         jsCode = jsCode.replace(/read\.byte\s*\(([\s\S]*?)\);?/g, '(parseInt(prompt($1)) << 24) >> 24;');
         jsCode = jsCode.replace(/read\.base64\s*\(([\s\S]*?)\);?/g, 'btoa(promt($1));');
+        jsCode = jsCode.replace(/open\.file\s*\(([\s\S]*?)\);?/g, 'await fetch($1).then(r => r.text());');
 
         return jsCode;
     }
