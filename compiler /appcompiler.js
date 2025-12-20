@@ -185,6 +185,17 @@
         jsCode = jsCode.replace(/system\.beep\(([\s\S]*?)\);?/g, 'Console.Beep($1);');
         jsCode = jsCode.replace(/read\.title\(([\s\S]*?)\);?/g, 'Console.Write($1);');
         jsCode = jsCode.replace(/open\.file\(([\s\S]*?)\);?/g, 'File.ReadAllText($1);');
+        jsCode = jsCode.replace(/open\.folder\(([\s\S]*?)\);?/g, 'Path.GetFullPath($1);');
+        jsCode = jsCode.replace(/.list\.add\(([\s\S]*?)\);?/g, '.Add($1);');
+        jsCode = jsCode.replace(/.list\.new\(([\s\S]*?)\);?/g, '.Insert($1);');
+        jsCode = jsCode.replace(/.list\.delente\(([\s\S]*?)\);?/g, '.RemoveAt($1);');
+        jsCode = jsCode.replace(/.list\.count\(([\s\S]*?)\);?/g, '.Count;');
+        jsCode = jsCode.replace(/.list\.index\(([\s\S]*?)\);?/g, '.IndexOf($1);');
+        jsCode = jsCode.replace(/.list\.control\(([\s\S]*?)\);?/g, '.Contains($1);');
+        jsCode = jsCode.replace(/.list\.clr\(([\s\S]*?)\);?/g, '.Clear($1);');
+        jsCode = jsCode.replace(/.list\.all\(([\s\S]*?)\);?/g, '.Sort($1);');
+        jsCode = jsCode.replace(/.list\.redata\(([\s\S]*?)\);?/g, '.Reverse($1);');
+        jsCode = jsCode.replace(/.list\.join\(([\s\S]*?)\);?/g, '.string.Join($1);');
 
         return jsCode;
     }
