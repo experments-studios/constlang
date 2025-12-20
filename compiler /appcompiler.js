@@ -156,10 +156,14 @@
             return output;
         });
      
-        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'int $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int16 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int32 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int64 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int128 $1 = $2;');
         jsCode = jsCode.replace(/^\s*intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'double $1 = $2;');
-        jsCode = jsCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'string $1 = $2;');
-        jsCode = jsCode.replace(/^\s*ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'bool $1 = $2;');
+        jsCode = jsCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'String $1 = $2;');
+        jsCode = jsCode.replace(/^\s*ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Bool $1 = $2;');
         jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/get\s*\(([\s\S]*?)\);?/g, 'await client.GetFromJsonAsync($1);');
@@ -177,10 +181,15 @@
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
         jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
         jsCode = jsCode.replace(/if \s*\{([\s\S]*?)\};?/g, 'do {$1}');
-        jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const int $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const double $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const string $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const bool $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int16 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int32 $1 = $2;');
+        sCode = jsCode.replace(/^\s*static\s+Int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int64 $1 = $2;');
+        sCode = jsCode.replace(/^\s*static\s+int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int128 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Double $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const String $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Bool $1 = $2;');
         jsCode = jsCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'Console.Error.WriteLine($1);');
         jsCode = jsCode.replace(/system\.beep\(([\s\S]*?)\);?/g, 'Console.Beep($1);');
         jsCode = jsCode.replace(/read\.title\(([\s\S]*?)\);?/g, 'Console.Write($1);');
@@ -196,6 +205,13 @@
         jsCode = jsCode.replace(/.list\.all\(([\s\S]*?)\);?/g, '.Sort($1);');
         jsCode = jsCode.replace(/.list\.redata\(([\s\S]*?)\);?/g, '.Reverse($1);');
         jsCode = jsCode.replace(/.list\.join\(([\s\S]*?)\);?/g, '.string.Join($1);');
+        jsCode = jsCode.replace(/.list\.string\(([\s\S]*?)\);?/g, 'new List<String>($1);');
+        jsCode = jsCode.replace(/.list\.int16\(([\s\S]*?)\);?/g, 'new List<Int16>($1);');
+        jsCode = jsCode.replace(/.list\.int32\(([\s\S]*?)\);?/g, 'new List<Int32>($1);');
+        jsCode = jsCode.replace(/.list\.int64\(([\s\S]*?)\);?/g, 'new List<Int64>($1);');
+        jsCode = jsCode.replace(/.list\.int128\(([\s\S]*?)\);?/g, 'new List<Int128>($1);');
+        jsCode = jsCode.replace(/.list\.intx\(([\s\S]*?)\);?/g, 'new List<Double>($1);');
+
 
         return jsCode;
     }
