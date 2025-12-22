@@ -3,7 +3,7 @@
   <span style="font-size: 28px; font-weight: bold; vertical-align: middle;"></span>
 </p>
 
-# ConstLang programing language v3.7.9
+# ConstLang programing language v4.0.0
 ## © 2025 Ilkin Yahya. All rights reserved.
 
 ConstLang is a lightweight browser-based programming language that compiles to JavaScript.
