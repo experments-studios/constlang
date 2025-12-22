@@ -184,8 +184,8 @@
         jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int $1 = $2;');
         jsCode = jsCode.replace(/^\s*static\s+int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int16 $1 = $2;');
         jsCode = jsCode.replace(/^\s*static\s+int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int32 $1 = $2;');
-        sCode = jsCode.replace(/^\s*static\s+Int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int64 $1 = $2;');
-        sCode = jsCode.replace(/^\s*static\s+int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int128 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+Int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int64 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int128 $1 = $2;');
         jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Int $1 = $2;');
         jsCode = jsCode.replace(/^\s*static\s+intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const Double $1 = $2;');
         jsCode = jsCode.replace(/^\s*static\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Const String $1 = $2;');
@@ -211,6 +211,23 @@
         jsCode = jsCode.replace(/.list\.int64\(([\s\S]*?)\);?/g, 'new List<Int64>($1);');
         jsCode = jsCode.replace(/.list\.int128\(([\s\S]*?)\);?/g, 'new List<Int128>($1);');
         jsCode = jsCode.replace(/.list\.intx\(([\s\S]*?)\);?/g, 'new List<Double>($1);');
+        jsCode = jsCode.replace(/file\.add\(([\s\S]*?)\);?/g, 'File.WriteAllText($1);');
+        jsCode = jsCode.replace(/folder\.add\(([\s\S]*?)\);?/g, 'Directory.CreateDirectory($1);');
+        jsCode = jsCode.replace(/file\.load\(([\s\S]*?)\);?/g, 'File.ReadAllText($1);');
+        jsCode = jsCode.replace(/folder\.fileinfo\(([\s\S]*?)\);?/g, 'Directory.GetFiles($1);');
+        jsCode = jsCode.replace(/folder\.folderinfo\(([\s\S]*?)\);?/g, 'Directory.GetDirectories($1);');
+        jsCode = jsCode.replace(/.caracters\.token\(([\s\S]*?)\);?/g, '.Split($1);');
+        jsCode = jsCode.replace(/regex\.parse\(([\s\S]*?)\);?/g, 'Regex.Split($1);');
+        jsCode = jsCode.replace(/regex\.mainsearch\(([\s\S]*?)\);?/g, 'Regex.Match($1);');
+        jsCode = jsCode.replace(/regex\.search\(([\s\S]*?)\);?/g, 'Regex.Matches($1);');
+        jsCode = jsCode.replace(/regex\.control\(([\s\S]*?)\);?/g, 'Regex.IsMatch($1);');
+        jsCode = jsCode.replace(/regex\.replace\(([\s\S]*?)\);?/g, 'Regex.Replace($1);');
+        jsCode = jsCode.replace(/file\.redata\(([\s\S]*?)\);?/g, 'StreamWriter($1))');
+        jsCode = jsCode.replace(/file\.move\(([\s\S]*?)\);?/g, 'File.Move($1);');
+        jsCode = jsCode.replace(/folder\.move\(([\s\S]*?)\);?/g, 'Directory.Move($1);');
+        jsCode = jsCode.replace(/file\.copy\(([\s\S]*?)\);?/g, 'File.Copy($1);');
+        jsCode = jsCode.replace(/lib\.cs\(([\s\S]*?)\);?/g, 'using $1;');
+        jsCode = jsCode.replace(/system\.control\(([\s\S]*?)\);?/g, 'using ($1)');
 
 
         return jsCode;
@@ -277,4 +294,3 @@
     console.log("Start with: 'compiler.add()'");
 
 })(window);
-
