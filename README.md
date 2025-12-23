@@ -20,54 +20,241 @@ ConstLang is a lightweight browser-based programming language that compiles to J
 
 ---
 
-## 🧩 ConstLang Commands (16)
+# Constlang v4.0.0 — Language Commands Reference
 
-| Command | Description | JavaScript Output | Example |
-|---------|-------------|-----------------|---------|
-| `int , intx , string or ft <var> = <value>;` | Declare variable | `let <var> = <value>;` | `int x = 5;` → `let x = 5;` |
-| `console.print(<expr>);` | Print to console | `console.log(<expr>);` | `console.print("Hi");` |
-| `alert.data(<expr>);` | Browser alert | `alert(<expr>);` | `alert.data("Done");` |
-| `addon() { ... }` | Embed raw JS | Inline JS | `addon() { console.log("Hi"); }` |
-| `#import <file.clg>` | Import another `.clg` file | N/A | `#import utils.clg` |
-| `#install <url>` | Download and include remote code | Inline JS | `#install https://cdn.com/lib.js` |
-| `new.command()[ ... command() ... ]` | Define macro | Expands to JS template | *(See macro section)* |
-| `if (condition) { ... }` | Conditional execution | Same as JS | `if (x>0){console.print(x);}` |
-| `else if (condition) { ... }` | Additional conditional | Same as JS | `else if (x==0){console.print("Zero");}` |
-| `else { ... }` | Fallback conditional | Same as JS | `else{console.print("Negative");}` |
-| `for (init; condition; step) { ... }` | For loop | Same as JS | `for (let i=0;i<3;i++){console.print(i);}` |
-| `while (condition) { ... }` | While loop | Same as JS | `while(x<5){x=x+1;}` |
-| `do { ... } while (condition);` | Do-while loop | Same as JS | `do{x=x+1;}while(x<5);` |
-| `switch (expr) { case ... }` | Multi-case selection | Same as JS | `switch(x){case 1:console.print("1");break;}` |
-| `break` | Exit nearest loop/switch | `break;` | `break;` |
-| `continue` | Skip iteration | `continue;` | `continue;` |
+This document lists all built-in commands available in **Constlang v4.0.0**.
+Each command is mapped to its corresponding runtime or target-language behavior.
 
 ---
 
-## 🧠 Macro Variable Syntax (1)
+## 1. Macro System (1)
 
-| Syntax | Description | Example | Output |
-|--------|-------------|---------|--------|
-| `${cmd^var}` | Macro placeholder for custom command variables | `new.command()[ print ${cmd^msg} command() console.log(${cmd^msg}); ] print "Hello";` | `console.log("Hello");` |
-
----
-
-## 📘 Example Program
+### new.command
+Defines a custom command using pattern–template mapping.
 
 ```clg
-int x = 0;
-while (x < 3) {
-    console.print(x);
-    int x = x + 1;
-}
-
-if (x == 3) {
-    alert.data("Done!");
-}
-
 new.command()[
-    print ${cmd^msg}
-    command()
-    console.log(${cmd^msg});
+  print ${cmd^text}
+  command()
+  Console.WriteLine(${text});
 ]
+```
 
-print "Hello ConstLang!";
+---
+
+## 2. GUI Commands (2)
+
+### gui()
+Defines GUI content. Extracted into a separate output file.
+
+```clg
+gui() {
+  <button>OK</button>
+}
+```
+
+### naviteapi()
+Injects raw native code directly.
+
+```clg
+naviteapi() {
+  Console.WriteLine("Native");
+}
+```
+
+---
+
+## 3. Import & Install Commands (2)
+
+### #import
+Imports another `.clg` file.
+
+```clg
+#import utils.clg
+```
+
+### #install
+Loads external source code.
+
+```clg
+#install https://example.com/lib.clg
+```
+
+---
+
+## 4. Variable & Type Commands (9)
+
+### int
+```clg
+int x = 10;
+```
+
+### int16
+### int32
+### int64
+### int128
+
+### intx (Double)
+```clg
+intx pi = 3.14;
+```
+
+### string
+```clg
+string name = "Constlang";
+```
+
+### ft (Boolean)
+```clg
+ft ready = true;
+```
+
+### static
+Defines constant values.
+
+```clg
+static int MAX = 100;
+```
+
+---
+
+## 5. Console Output Commands (4)
+
+### console.print
+```clg
+console.print("Hello");
+```
+
+### console.error
+```clg
+console.error("Error");
+```
+
+### alert.data
+```clg
+alert.data("Message");
+```
+
+### read.title
+```clg
+read.title("Enter value:");
+```
+
+---
+
+## 6. Input Commands (7)
+
+### read.int16
+### read.int32
+### read.int64
+### read.intx
+### read.string
+### read.byte
+### read.base64
+
+```clg
+read.int32(x);
+```
+
+---
+
+## 7. HTTP Commands (3)
+
+### get
+```clg
+get("endpoint");
+```
+
+---
+
+## 8. Link Request Commands (3)
+
+This command has been removed.
+
+
+## 9. File Commands (6)
+
+### file.add
+### file.load
+### file.move
+### file.copy
+### file.redata
+### open.file
+
+```clg
+file.add("a.txt","data");
+```
+
+---
+
+## 10. Folder Commands (5)
+
+### folder.add
+### folder.move
+### folder.fileinfo
+### folder.folderinfo
+### open.folder
+
+---
+
+## 11. List Commands (14)
+
+### .list.add
+### .list.new
+### .list.delente
+### .list.count
+### .list.index
+### .list.control
+### .list.clr
+### .list.all
+### .list.redata
+### .list.join
+
+### .list.string
+### .list.int16
+### .list.int32
+### .list.int64
+### .list.int128
+### .list.intx
+
+---
+
+## 12. Regex Commands (5)
+
+### regex.parse
+### regex.search
+### regex.mainsearch
+### regex.control
+### regex.replace
+
+---
+
+## 13. Flow Control Commands (5)
+
+### if
+### else
+### else if
+### while
+### for
+
+---
+
+## 14. System Commands (4)
+
+### system.beep
+### system.control
+### open.window
+### lib.cs
+
+```clg
+system.beep(500);
+```
+
+---
+
+## ✔ Total
+
+- **Commands:** 74
+- **Macro Systems:** 1
+- **Version:** Constlang v4.0.0
+
