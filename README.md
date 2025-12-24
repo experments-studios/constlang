@@ -3,7 +3,7 @@
   <span style="font-size: 28px; font-weight: bold; vertical-align: middle;"></span>
 </p>
 
-# ConstLang programing language v4.0.0
+# ConstLang programing language v4.2.1
 ## © 2025 Ilkin Yahya. All rights reserved.
 
 ConstLang is a lightweight browser-based programming language that compiles to JavaScript.
@@ -14,15 +14,15 @@ ConstLang is a lightweight browser-based programming language that compiles to J
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `compiler.add()` | Opens file picker to load `.clg` files. | `compiler.add();` |
-| `compiler.start()` | Starts compilation process. | `compiler.start();` |
-| `compiler.download()` | Downloads compiled JS file as `output.js`. | `compiler.download();` |
+| `constlib new` | Opens file picker to load `.clg` files. | `compiler.add();` |
+| `constlang build` | Starts compilation process. | `compiler.start();` |
+| `constlang publish` | Downloads compiled JS file as `output.js`. | `compiler.download();` |
 
 ---
 
-# Constlang v4.0.0 — Language Commands Reference
+# Constlang v4.2.1 — Language Commands Reference
 
-This document lists all built-in commands available in **Constlang v4.0.0**.
+This document lists all built-in commands available in **Constlang v4.2.1**.
 Each command is mapped to its corresponding runtime or target-language behavior.
 
 ---
@@ -42,16 +42,11 @@ new.command()[
 
 ---
 
-## 2. GUI Commands (2)
+## 2. GUI Commands (1)
 
-### gui()
-Defines GUI content. Extracted into a separate output file.
+### system.time()
 
-```clg
-gui() {
-  <button>OK</button>
-}
-```
+
 
 ### naviteapi()
 Injects raw native code directly.
