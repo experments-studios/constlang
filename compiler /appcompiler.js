@@ -167,7 +167,7 @@
         jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/get\s*\(([\s\S]*?)\);?/g, 'await client.GetFromJsonAsync($1);');
-        jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt32(Console.ReadLine($));');
+        jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt32(Console.ReadLine($1));');
         jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt16(Console.ReadLine($1));');
         jsCode = jsCode.replace(/read\.int64\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt64(Console.ReadLine($1));');
         jsCode = jsCode.replace(/read\.intx\s*\(([\s\S]*?)\);?/g, 'Convert.ToDouble(Console.ReadLine($1));');
