@@ -1,0 +1,52 @@
+<module="thread">
+lib.cs(System.Threading)
+cmd.fn() [
+    thread.tool(${cmd^thread})
+    command()
+    lib.cs(System.Threading.${cmd^thread});
+]
+cmd.fn() [
+    thread
+    command()
+    Thread
+]
+<module>
+<module="mobile">
+lib.cs(Micrasoft.Maui)
+cmd.fn() [
+    maui.tool(${cmd^maui})
+    command()
+    lib.cs(Micrasoft.Maui.${cmd^tool});
+]
+<module>
+<module="goroutine">
+import (
+    "fmt"  
+    "sync"   
+    "time" 
+)
+<module>
+<module="time">
+cmd.fn() [
+    date.go.tool()
+    command()
+    import "time"
+]
+cmd.fn() [
+    date.cs.tool()
+    command()
+    lib.cs(System.DateTime);
+]
+<module>
+<module="math">
+cmd.fn() [
+    math.go.tool()
+    command()
+    import "math"
+]
+cmd.fn() [
+    math.cs.tool()
+    command()
+    lib.cs(System.Math);
+]
+<module>

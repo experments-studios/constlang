@@ -1,0 +1,37 @@
+{
+  "name": "constlang",
+  "version": "7.0.0",
+  "description": "Constlang Programming Language v7.0",
+  "author": "Ilkin Yahya <theprocramer@gmail.com>",
+  "homepage": "https://constlang.pages.dev",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pckwin": "electron-builder --win",
+    "pcklin": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.constlang.app",
+    "productName": "Constlang",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "linux": {
+      "target": "dir",
+      "category": "Development",
+      "icon": "icon.png",
+      "maintainer": "Ilkin Yahya <theprocramer@gmail.com>"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "24.13.3"
+  },
+  "keywords": [],
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "axios": "^1.13.5",
+    "fs-extra": "^11.3.3"
+  }
+}

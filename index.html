@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>ConstLang Compiler</title>
+    <script src="constlangpocketer.js"></script>
+    <script src="cpm.js"></script>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --text-color: #cccccc;
+            --prompt-color: #65e459;
+            --input-color: #ffffff;
+            --border-color: #333333;
+            --accent-border: #007acc;
+            --cursor-color: #ffffff;
+        }
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #181818; color: var(--text-color);
+            font-family: 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            font-size: 13px; overflow: hidden;
+        }
+        #display {
+            width: 100%; height: 100vh; padding: 12px 20px;
+            overflow-y: auto; background-color: var(--bg-color);
+            display: flex; flex-direction: column; line-height: 1.5;
+            border-left: 1px solid var(--border-color); position: relative;
+        }
+        .line { white-space: pre-wrap; word-wrap: break-word; margin-bottom: 2px; }
+        .system-info { margin-bottom: 8px; color: #888888; font-size: 12px; }
+        .input-line { display: flex; align-items: center; width: 100%; position: relative; }
+        .prompt { color: var(--prompt-color); margin-right: 8px; font-weight: bold; }
+        .input-container { position: relative; flex: 1; display: inline-flex; align-items: center; }
+        #cmd-input {
+            position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+            background: transparent; border: none; color: var(--input-color);
+            font-family: inherit; font-size: inherit; outline: none;
+            caret-color: transparent; z-index: 5;
+        }
+        #input-helper { white-space: pre; color: transparent; pointer-events: none; z-index: 1; }
+        .cursor {
+            display: inline-block; width: 8px; height: 15px;
+            background-color: var(--cursor-color); animation: blink 1s step-end infinite;
+            margin-left: 1px; z-index: 2;
+        }
+        @keyframes blink { from, to { opacity: 0; } 50% { opacity: 1; } }
+        .lib-call { color: #3b82f6; }
+        .success { color: #22a559; }
+        .error { color: #f85149; }
+        #display::-webkit-scrollbar { width: 10px; }
+        #display::-webkit-scrollbar-thumb { background: #333333; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="display">
+    <div class="system-info">TERMINAL - Constlang Compiler [v7.0]</div>
+    <div class="system-info">© 2026 Ilkin Yahya. All rights reserved.</div>
+    <div id="history"></div>
+    <div class="input-line">
+        <span class="prompt">Constlang >></span>
+        <div class="input-container">
+            <span id="input-helper"></span>
+            <div class="cursor"></div>
+            <input type="text" id="cmd-input" autofocus autocomplete="off" spellcheck="false">
+        </div>
+    </div>
+</div>
+
+<script>
+    const { ipcRenderer } = require('electron');
+    const history = document.getElementById('history');
+    const input = document.getElementById('cmd-input');
+    const display = document.getElementById('display');
+    const helper = document.getElementById('input-helper');
+
+    // .csdf Script Dinleyici
+    ipcRenderer.on('run-csdf-script', async (event, content) => {
+        const lines = content.split(/\r?\n/);
+        printLine(`<span class='lib-call'>[Shell] .csdf file (${lines.length} )...</span>`);
+        
+        for (let rawLine of lines) {
+            let line = rawLine.trim();
+            if (line === "" || line.startsWith("//") || line.startsWith("#")) continue;
+            
+            printLine(`<span class="prompt">Constlang (Script) >></span> ${line}`);
+            await executeCommand(line);
+            await new Promise(r => setTimeout(r, 150)); // İşlemler arası nefes payı
+        }
+        printLine(`<span class='success'>[Shell] Script loadend</span>`);
+    });
+
+    input.addEventListener('input', () => { helper.textContent = input.value; });
+
+    input.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            const raw = input.value;
+            printLine(`<span class="prompt">Constlang >></span> ${raw}`);
+            input.value = "";
+            helper.textContent = ""; 
+            await executeCommand(raw);
+        }
+    });
+
+    // MERKEZİ KOMUT MOTORU
+    async function executeCommand(raw) {
+        const cmd = raw.trim().toLowerCase();
+        if (cmd === "") return;
+
+        // Karar Yapısı
+        if (cmd.startsWith("linux")) {
+            const subCmd = raw.substring("linux".length).trim();
+            printLine(`<span class='lib-call'>Pocket-Forward: Linux ${subCmd}</span>`);
+            if(typeof system !== 'undefined') system.run.sh(subCmd);
+        }
+        else if (cmd.startsWith("windows")) {
+            const subCmd = raw.substring("windows".length).trim();
+            printLine(`<span class='lib-call'>Pocket-Forward: Windows ${subCmd}</span>`);
+            if(typeof system !== 'undefined') system.run.bat(subCmd);
+        }
+           else if (cmd.startsWith("macos")) {
+            const subCmd = raw.substring("macos".length).trim();
+            printLine(`<span class='lib-call'>Pocket-Forward: Macos ${subCmd}</span>`);
+            if(typeof system !== 'undefined') system.run.command(subCmd);
+        }
+        else if (cmd.startsWith("cpm install -url:")) {
+            const subCmd = raw.substring("cpm install -url:".length).trim();
+            if(typeof cpm !== 'undefined') cpm.install(subCmd);
+        }
+         else if (cmd.startsWith("cpm install -github:")) {
+            const subCmd = raw.substring("cpm install -url:".length).trim();
+            if(typeof cpm !== 'undefined') cpm.install("https://raw.githubusercontent.com/" + subCmd);
+        }
+        else if (cmd.startsWith("cpm install -tool:")) {
+            const subCmd = raw.substring("cpm install -tool:".length).trim();
+            if(typeof cpm !== 'undefined') cpm.install("tools/" + subCmd);
+        }
+        else if (cmd === "cls" || cmd === "clear") {
+            history.innerHTML = "";
+        }
+        else if (cmd.includes("constlang build")) {
+            printLine("Compiling source files...");
+            await new Promise(r => setTimeout(r, 700));
+            if (cmd.includes("--app") && typeof compiler !== 'undefined') compiler.start();
+            printLine("<span class='success'>Build completed.</span>");
+        }
+        else if (cmd.startsWith("cpm new --")) {
+            const type = cmd.replace("cpm new --", "");
+            const s = document.body.appendChild(document.createElement('script'));
+            s.src = `compilers/${type}compiler.js`;
+            s.onload = () => { if(typeof compiler !== 'undefined') compiler.add(); };
+        }
+        else if (cmd === "constlang version") {
+            printLine("version: v7.0");
+        }
+        else if (cmd === "folder") {
+            let path = window.dirHandle || (typeof dirHandle !== 'undefined' ? dirHandle : "Not Set");
+            printLine("folder: " + path);
+        }
+        else {
+            // Tanımsız komutlar direkt sisteme
+            if(typeof system !== 'undefined') system.run.bat(raw);
+        }
+
+        display.scrollTop = display.scrollHeight;
+    }
+
+    function printLine(text) {
+        const div = document.createElement('div');
+        div.className = 'line';
+        div.innerHTML = text;
+        history.appendChild(div);
+    }
+    document.addEventListener('click', () => input.focus());
+</script>
+</body>
+</html>
