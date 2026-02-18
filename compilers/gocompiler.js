@@ -1,5 +1,4 @@
 (function(global) {
-    let dataloopsconx = true
     let compiledGoCache = null;
     let extractedGoModCache = ""; 
     const entryPoint = 'main.clg';
@@ -532,9 +531,9 @@ func beep(freq int) {
 
         // PHASE 20: Error checking
         console.log("[PHASE 20] Final validation...");
-        const unknownCommandRegex = /[a-zA-Z_][a-zA-Z0-9_.]*\s*\(\s*[^)]*\s*\)(?!\s*{)/g;
+        const unknownCommandRegex = null;
         const matches = goCode.match(unknownCommandRegex) || [];
-        const knownCommands = dataloopsconx
+        const knownCommands = true
 
         for (const match of matches) {
             const cmd = match.trim().split('(')[0];

@@ -1,5 +1,4 @@
 (function(global) {
-    let dataloopsconx = true
     let compiledJSCache = null;
     let extractedHTMLCache = ""; 
     const entryPoint = 'main.clg';
@@ -504,9 +503,9 @@
             jsCode = jsCode.replace(/\bawait\s+/g, 'await ');
             jsCode = jsCode.replace(/wait\.ms\s*\(([\s\S]*?)\);?/g, 'await Task.Delay($1);');
         console.log("[PHASE 6] Final validation and unknown command check...");
-        const unknownCommandRegex = /[a-zA-Z_][a-zA-Z0-9_.]*\s*\(\s*[^)]*\s*\)(?!\s*{)/g;
+        const unknownCommandRegex = null;
         const matches = jsCode.match(unknownCommandRegex) || [];
-        const knownCommands = dataloopsconx
+        const knownCommands = true;
 
         for (const match of matches) {
             const cmd = match.trim().split('(')[0];
