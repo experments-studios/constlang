@@ -228,18 +228,12 @@
         batCode = batCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'SET $1=$2');
         batCode = batCode.replace(/^\s*ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'SET $1=$2');
         console.log("[PHASE 3] Print operations...");
-        batCode = batCode.replace(/print\s*\(([\s\S]*?)\);?/g, 'ECHO $1');
-        batCode = batCode.replace(/print\.text\s*\(([\s\S]*?)\);?/g, 'ECHO $1');
-        batCode = batCode.replace(/print\.ln\s*\(([\s\S]*?)\);?/g, 'ECHO $1');
-        batCode = batCode.replace(/print\.error\s*\(([\s\S]*?)\);?/g, '(ECHO $1) 1>&2');
+        batCode = batCode.replace(/console\.print\s*\(([\s\S]*?)\);?/g, 'ECHO $1');
+        batCode = batCode.replace(/alert\.data\s*\(([\s\S]*?)\);?/g, '(ECHO $1) 1>&2');
         batCode = batCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'ECHO $1');
-        batCode = batCode.replace(/console\.error\(([\s\S]*?)\);?/g, '(ECHO $1) 1>&2');
-        batCode = batCode.replace(/error\.log\s*\(([\s\S]*?)\);?/g, 'ECHO $1 >> error.log');
+        batCode = batCode.replace(/console\.error\s*\(([\s\S]*?)\);?/g, 'ECHO $1 >> error.log');
         batCode = batCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'ECHO $1');
         console.log("[PHASE 4] Input operations...");
-        batCode = batCode.replace(/input\s*\(([\s\S]*?)\);?/g, 'SET /P INPUT=');
-        batCode = batCode.replace(/input\.line\s*\(([\s\S]*?)\);?/g, 'SET /P INPUT=');
-        batCode = batCode.replace(/read\.line\s*\(\s*\);?/g, 'SET /P INPUT=');
         batCode = batCode.replace(/read\.data\s*\(([\s\S]*?)\);?/g, 'SET /P INPUT=');
         console.log("[PHASE 5] String operations...");
         batCode = batCode.replace(/string\.tolower\(([\s\S]*?)\);?/g, 'SETLOCAL ENABLEDELAYEDEXPANSION & SET str=$1 & FOR %%a in (a b c d e f g h i j k l m n o p q r s t u v w x y z) DO SET str=!str:%%a=%%a!');
@@ -369,6 +363,6 @@
         console.log(`%c[BATCH COMPILATION COMPLETE]`, "color: yellow; font-weight: bold;");
     };
 
-    global.batchCompiler = compiler;
+    global.compiler = compiler;
 
 })(typeof window !== 'undefined' ? window : global);

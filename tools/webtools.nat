@@ -1,0 +1,93 @@
+<module="gui">
+addon() {
+const GUI = (() => {
+    // CSS ve Animasyon Yönetimi
+    const styleSheet = document.createElement("style");
+    document.head.appendChild(styleSheet);
+
+    const helper = {
+        toCssKey: (k) => k.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/\./g, '-').replace(/body/g, 'border').toLowerCase(),
+        createAnim: (name, steps) => {
+            const rule = `@keyframes ${name} { ${steps} }`;
+            styleSheet.sheet.insertRule(rule, styleSheet.sheet.cssRules.length);
+        }
+    };
+
+    // Proxy Sarmalayıcı (Hem GUI hem DOM için ortak motor)
+    const wrap = (el) => {
+        if (!el) return null;
+        return new Proxy(el, {
+            get(target, prop) {
+                // 1. Dinamik Stil Zinciri
+                if (prop === 'style') {
+                    return new Proxy({}, {
+                        get: (_, sProp) => (val) => {
+                            target.style[helper.toCssKey(sProp)] = val;
+                            return wrap(target).style;
+                        }
+                    });
+                }
+
+                // 2. DOM Manipülasyon Metotları
+                const methods = {
+                    id: (v) => { target.id = v; return wrap(target); },
+                    class: (v) => { target.className = v; return wrap(target); },
+                    html: (v) => { target.innerHTML = v; return wrap(target); },
+                    val: (v) => { target.value = v; return wrap(target); }, // Inputlar için
+                    hide: () => { target.style.display = 'none'; return wrap(target); },
+                    show: () => { target.style.display = ''; return wrap(target); },
+                    remove: () => target.remove(),
+                    click: (fn) => { target.onclick = (e) => fn(wrap(target), e); return wrap(target); },
+                    add: (...kids) => { kids.forEach(k => target.appendChild(k)); return wrap(target); },
+                    animate: (n, d = "1s", f = "infinite") => { target.style.animation = `${n} ${d} ${f}`; return wrap(target); }
+                };
+
+                return methods[prop] || target[prop];
+            }
+        });
+    };
+
+    return {
+        // Sıfırdan Element Yaratma: html.create.div("içerik")
+        create: new Proxy({}, {
+            get: (_, group) => new Proxy({}, {
+                get: (_, tag) => (content) => {
+                    const el = document.createElement(tag);
+                    const media = { img: 'src', video: 'src', iframe: 'src' };
+                    if (media[tag]) el.src = content; else el.innerHTML = content || "";
+                    document.body.appendChild(el);
+                    return wrap(el);
+                }
+            })
+        }),
+
+        // Mevcut Elementi Seçme ve Yönetme: html.get("#id")
+        get: (query) => wrap(document.querySelector(query)),
+        
+        // Çoklu Seçim: html.all(".class")
+        all: (query) => Array.from(document.querySelectorAll(query)).map(el => wrap(el)),
+
+        // Animasyon Tanımlama
+        defineAnim: helper.createAnim
+    };
+})();
+
+const html = GUI;
+}
+
+cmd.fn() [
+    webgui.text
+    command()
+    html.text
+ ]
+ cmd.fn() [
+   webgui.media
+   command()
+    html.media
+ ]
+ cmd.fn() [
+ webgui.ui
+ command()
+ html.ui
+ ]
+<module>

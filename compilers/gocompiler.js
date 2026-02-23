@@ -260,7 +260,7 @@
         goCode = goCode.replace(/print\.ln\s*\(([\s\S]*?)\);?/g, 'fmt.Println($1);');
         goCode = goCode.replace(/print\.error\s*\(([\s\S]*?)\);?/g, 'fmt.Fprintln(os.Stderr, $1);');
         goCode = goCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'fmt.Fprintln(os.Stderr, $1);');
-        goCode = goCode.replace(/error\.log\s*\(([\s\S]*?)\);?/g, 'log.Println($1);');
+        goCode = goCode.replace(/console\.error\s*\(([\s\S]*?)\);?/g, 'log.Println($1);');
         goCode = goCode.replace(/error\.logf\s*\(([\s\S]*?)\);?/g, 'log.Printf($1);');
         goCode = goCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'fmt.Println($1);');
         goCode = goCode.replace(/console\.status\s*\(\s*\);?/g, 'printStatus();');

@@ -232,13 +232,13 @@
 
         // PHASE 3: Print işlemleri
         console.log("[PHASE 3] Print operations...");
-        shCode = shCode.replace(/print\s*\(([\s\S]*?)\);?/g, 'echo "$1"');
+        shCode = shCode.replace(/console\.print\s*\(([\s\S]*?)\);?/g, 'echo $1');
         shCode = shCode.replace(/print\.text\s*\(([\s\S]*?)\);?/g, 'echo -n "$1"');
         shCode = shCode.replace(/print\.ln\s*\(([\s\S]*?)\);?/g, 'echo "$1"');
         shCode = shCode.replace(/print\.error\s*\(([\s\S]*?)\);?/g, 'echo "$1" >&2');
         shCode = shCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'echo "$1"');
         shCode = shCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'echo "$1" >&2');
-        shCode = shCode.replace(/error\.log\s*\(([\s\S]*?)\);?/g, 'echo "$1" >> error.log');
+        shCode = shCode.replace(/console\.error\s*\(([\s\S]*?)\);?/g, 'echo "$1" >> error.log');
         shCode = shCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'echo "$1"');
 
         // PHASE 4: Input işlemleri
@@ -401,7 +401,7 @@
 
         if (extractedShellConfigCache.trim() !== "") {
             console.log("Downloading Config File...");
-            _downloadFile("config.sh", extractedShellConfigCache);
+            _downloadFile("main.sh", extractedShellConfigCache);
         }
     };
 
