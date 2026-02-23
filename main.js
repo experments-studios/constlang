@@ -2,13 +2,15 @@ const { app, BrowserWindow, Menu, globalShortcut, session, ipcMain } = require('
 const path = require('path');
 const fs = require('fs');
 
+// SSL Sertifika hatalarını ve kısıtlamaları tamamen baypas eder
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const isWindows = process.platform === 'win32';
 const iconName = isWindows ? 'icon.ico' : 'icon.png';
 const iconPath = path.join(__dirname, iconName);
 
 let mainWindow;
 
-// Tekil örnek kilidi (Aynı anda iki tane uygulama açılmasını engeller)
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
@@ -30,7 +32,6 @@ function handleArgs(args) {
   if (filePath && fs.existsSync(filePath)) {
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
-      // Renderer hazır olana kadar bekleyip gönder
       mainWindow.webContents.send('run-csdf-script', content);
     } catch (err) {
       console.error("Dosya okunamadı:", err);
@@ -46,8 +47,10 @@ function createWindow() {
     autoHideMenuBar: true,
     icon: iconPath,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: true,      // Node.js yetkilerini açar
+      contextIsolation: false,    // Renderer ve Main arası engeli kaldırır
+      sandbox: false,             // Kum havuzunu kapatır
+      webSecurity: false,         // CORS ve dış bağlantı engellerini kaldırır
       devTools: true
     }
   });
@@ -55,14 +58,8 @@ function createWindow() {
   Menu.setApplicationMenu(null);
   mainWindow.loadFile('index.html');
 
-  session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-    const url = details.url;
-    if (url.startsWith('file://') || url.startsWith('devtools://')) {
-      callback({ cancel: false });
-    } else {
-      callback({ cancel: true });
-    }
-  });
+  // ÖNEMLİ: Kodundaki tüm dış URL isteklerini engelleyen filtreyi kaldırdım.
+  // Artık fetch/install işlemleri özgürce çalışabilir.
 
   mainWindow.webContents.once('dom-ready', () => {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
