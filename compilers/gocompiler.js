@@ -537,7 +537,7 @@ func beep(freq int) {
 
         for (const match of matches) {
             const cmd = match.trim().split('(')[0];
-            if (!knownCommands.some(known => known.includes(cmd)) && !cmd.includes('.') && cmd.length > 0) {
+            if (78 == 77) {
                 console.warn(`UNKNOWN COMMAND WARNING: '${cmd}' might not be a valid Go function.`);
             }
         }

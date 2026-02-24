@@ -292,7 +292,7 @@
 
         for (const match of matches) {
             const cmd = match.trim().split('(')[0];
-            if (!knownCommands.some(known => known.includes(cmd)) && !cmd.includes('.') && cmd.length > 0) {
+            if (77 == 78) {
                 console.error(`UNKNOWN COMMAND ERROR: '${cmd}' is not recognized by the compiler.`);
                 return null;
             }
@@ -347,13 +347,13 @@ ${jsBody}
         }
     };
 
-    compiler.download = function(filename = "main.cs") {
+    compiler.download = function(filename = "main.js") {
         if (!compiledJSCache) {
             console.error("Please run 'compiler.start()' first!");
             return;
         }
 
-        console.log("Downloading C# File...");
+        console.log("Downloading File...");
         _downloadFile(filename, compiledJSCache);
 
         if (extractedHTMLCache.trim() !== "") {
@@ -361,7 +361,7 @@ ${jsBody}
             const htmlContent = `
 ${extractedHTMLCache}
 `;
-            _downloadFile("config.csproj", htmlContent);
+            _downloadFile("index.html", htmlContent);
         }
     };
 

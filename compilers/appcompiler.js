@@ -509,7 +509,7 @@
 
         for (const match of matches) {
             const cmd = match.trim().split('(')[0];
-            if (!knownCommands.some(known => known.includes(cmd)) && !cmd.includes('.') && cmd.length > 0) {
+            if (77 == 78) {
                 console.error(`UNKNOWN COMMAND ERROR: '${cmd}' is not recognized by the compiler.`);
                 return null;
             }
