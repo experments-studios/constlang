@@ -370,13 +370,13 @@
             }
         );
 
-        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'int $1 = $2;');
         jsCode = jsCode.replace(/system\.os\s*\(([\s\S]*?)\);?/g, '"app"');
         jsCode = jsCode.replace(/text\s*\(([\s\S]*?)\);?/g, '"$1"');
         jsCode = jsCode.replace(/^\s*int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int16 $1 = $2;');
         jsCode = jsCode.replace(/^\s*redata\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, ' $1 = $2;');
         jsCode = jsCode.replace(/^\s*byte\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'byte[] $1 = $2;');
-        jsCode = jsCode.replace(/^\s*byte\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'char[] $1 = $2;');
+        jsCode = jsCode.replace(/^\s*char\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'char[] $1 = $2;');
         jsCode = jsCode.replace(/^\s*int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int32 $1 = $2;');
         jsCode = jsCode.replace(/^\s*int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int64 $1 = $2;');
         jsCode = jsCode.replace(/^\s*int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int128 $1 = $2;');
