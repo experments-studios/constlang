@@ -277,7 +277,7 @@ html {
         }
          else if (cmd.startsWith("cpm install -constlib:")) {
             const subCmd = raw.substring("cpm install -constlib: ".length).trim();
-            if(typeof cpm !== 'undefined') cpm.install("https://constlib.constlang.pages.dev?install=" + subCmd);
+            if(typeof cpm !== 'undefined') cpm.install("https://raw.githubusercontent.com/experments-studios/constlib/refs/heads/main/libs/" + subCmd);
         }
         else if (cmd.startsWith("cpm install -tool:")) {
             const subCmd = raw.substring("cpm install -tool:".length).trim();

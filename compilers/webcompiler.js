@@ -1,133 +1,15 @@
 (function(global) {
-
     let compiledJSCache = null;
     let extractedHTMLCache = ""; 
     const entryPoint = 'main.clg';
     let MAX_COMPILATION_PASSES = 249;
     const SPECIAL_COMMANDS = ['#import', '#install', '#compiled', 'cmd.fn', 'cmd.save', 'create.ctfile', 'create.ctfolder'];
-    const TypeChecker = {
-        variables: new Map(),
-        errors: [],
-        validTypes: ['int', 'intx', "Bool", 'string', 'ft'],
-        typeAliases: {
-            'string': 'string',
-            'ft': 'bool'
-        },
-        
-        reset() {
-            this.variables.clear();
-            this.errors = [];
-        },
-        
-        normalizeType(type) {
-            return this.typeAliases[type] || type;
-        },
-        
-        addVariable(name, type, line) {
-            type = this.normalizeType(type);
-            
-            if (!this.validTypes.includes(type) && !Object.keys(this.typeAliases).includes(type)) {
-                this.errors.push(`ERROR [Line: ${line}]: type "${type}"`);
-                return;
-            }
-            
-            if (this.variables.has(name)) {
-                this.errors.push(`error [line ${line}]: "${name}" `);
-                return;
-            }
-            
-            this.variables.set(name, type);
-        },
-        
-        checkAssignment(name, valueType, line) {
-            valueType = this.normalizeType(valueType);
-            
-            if (!this.variables.has(name)) {
-                this.errors.push(`error [line ${line}]: "${name}" none`);
-                return;
-            }
-            
-            const varType = this.variables.get(name);
-            if (varType !== valueType && valueType !== 'unknown') {
-                this.errors.push(`Xəta [Sətir ${line}]: "${name}" tipi "${varType}", lakin "${valueType}" təyin edilir`);
-            }
-        },
-        
-        inferType(value) {
-            value = value.trim();
-            if ((value.startsWith('"') && value.endsWith('"')) || 
-                (value.startsWith("'") && value.endsWith("'"))) {
-                return 'string';
-            }
-            if (value === 'true' || value === 'false') {
-                return 'ft';
-            }
-            if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(value)) {
-                return value.includes('.') ? 'intx' : 'int';
-            }
-            
-            if (this.variables.has(value)) {
-                return this.variables.get(value);
-            }
-            
-            return 'unknown';
-        },
-        
-        check(code) {
-            this.reset();
-            const lines = code.split('\n');
-            
-            lines.forEach((line, idx) => {
-                const lineNum = idx + 1;
-                line = line.trim();
-                const varDecl = /^(int|intx|string|ft)\s+([a-zA-Z_]\w*)\s*=\s*(.+?);?$/.exec(line);
-                if (varDecl) {
-                    const varType = varDecl[1];
-                    const varName = varDecl[2];
-                    const value = varDecl[3];
-                    
-                    this.addVariable(varName, varType, lineNum);
-                    
-                    const valueType = this.inferType(value);
-                    if (valueType !== 'unknown') {
-                        this.checkAssignment(varName, valueType, lineNum);
-                    }
-                    return;
-                }
-
-                const varDeclOnly = /^(var|let|const)\s+(\w+)\s*:\s*(int|intx|double|string|mətn|bool|ft)\s*;?$/.exec(line);
-                if (varDeclOnly) {
-                    const varName = varDeclOnly[2];
-                    const varType = varDeclOnly[3];
-                    this.addVariable(varName, varType, lineNum);
-                    return;
-                }
-
-                const assignment = /^(\w+)\s*=\s*(.+?);?$/.exec(line);
-                if (assignment) {
-                    const varName = assignment[1];
-                    const value = assignment[2];
-                    const valueType = this.inferType(value);
-                    this.checkAssignment(varName, valueType, lineNum);
-                }
-            });
-            
-            if (this.errors.length > 0) {
-                console.error('\n%c[type error]:', 'color: red; font-weight: bold;');
-                this.errors.forEach(err => console.error(`  ${err}`));
-                return false;
-            }
-            
-            console.log('%c[Type ✓ ', 'color: lime; font-weight: bold;');
-            return true;
-        }
-    };
 
     function _downloadFile(filename, text) {
         const element = document.createElement('a');
         let mimeType = 'text/plain';
         if(filename.endsWith('.html')) mimeType = 'text/html';
-        if(filename.endsWith('.js')) mimeType = 'text/javascript';
+        if(filename.endsWith('.cs')) mimeType = 'text/plain';
         
         element.setAttribute('href', `data:${mimeType};charset=utf-8,` + encodeURIComponent(text));
         element.setAttribute('download', filename);
@@ -163,282 +45,171 @@
             }
         }
 
-        const imports = new Set();
-        const visited = new Set();
-
-        function findImports(filename) {
-            if (visited.has(filename)) return;
-            visited.add(filename);
-
-            const content = fileCache[filename];
-            if (!content) {
-                console.warn(`File not found: ${filename}`);
-                return;
-            }
-
-            const lines = content.split('\n');
-            lines.forEach(line => {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('#import')) {
-                    const match = trimmed.match(/#import\s+["']([^"']+)["']/);
-                    if (match) {
-                        const importedFile = match[1];
-                        if (!importedFile.endsWith('.clg') && !importedFile.endsWith('.nat')) {
-                            console.warn(`Unsupported import: ${importedFile}`);
-                            return;
-                        }
-                        imports.add(importedFile);
-                        findImports(importedFile);
-                    }
-                }
-            });
-        }
-
-        findImports(startFile);
-
-        let bundled = fileCache[startFile] || "";
-
-        imports.forEach(imp => {
-            if (fileCache[imp]) {
-                bundled = fileCache[imp] + "\n\n" + bundled;
-            }
-        });
-
-        console.log("[PHASE 2] Imports collected:", Array.from(imports));
-        return bundled;
-    }
-
-    function _extractHTML(code) {
-        console.log("[PHASE 3] Extracting HTML blocks...");
-        const htmlBlockPattern = /<!web\s+([\s\S]*?)!>/g;
-        let match;
-        let extractedHTML = "";
-
-        while ((match = htmlBlockPattern.exec(code)) !== null) {
-            extractedHTML += match[1].trim() + "\n";
-        }
-
-        if(extractedHTML) {
-            extractedHTMLCache = extractedHTML;
-            console.log("[HTML] Found HTML blocks...");
-        } else {
-            console.log("[HTML] No HTML blocks found.");
-        }
-
-        return code.replace(htmlBlockPattern, '');
-    }
-
-    function _transpile(code) {
-        console.log("[PHASE 4] Type checking...");
-        if (!TypeChecker.check(code)) {
-            console.error("[COMPILATION ABORTED] Type errors detected!");
+        if (!fileCache[startFile]) {
+            console.error(`ENTRY FILE NOT FOUND: (${startFile})`);
             return null;
         }
 
-        console.log("[PHASE 5] Transpiling to JS...");
-        let jsCode = _extractHTML(code);
+        const processedFiles = new Set();
 
-        for (let pass = 0; pass < MAX_COMPILATION_PASSES; pass++) {
-            jsCode = jsCode.replace(/#import\s+["']([^"']+)["']/g, '// imported: $1');
+        async function processFile(filename, moduleFilter = null) {
+            if (processedFiles.has(filename)) return "";
+            processedFiles.add(filename);
+
+            let content = fileCache[filename];
+            if (!content) return "";
+            if (filename.endsWith('.nat')) {
+                const moduleRegex = /<module="([^"]+)">([\s\S]*?)<\/module>/g;
+                let matches;
+                let moduleContent = "";
+                
+                while ((matches = moduleRegex.exec(content)) !== null) {
+                    const moduleName = matches[1];
+                    const moduleBody = matches[2];
+                    
+                    if (!moduleFilter || moduleFilter === moduleName) {
+                        moduleContent += moduleBody + "\n";
+                    }
+                }
+                
+                return moduleContent;
+            }
+
+            const installRegex = /^\s*#install\s+(.*?);?\s*$/gm;
+            const importRegex = /^\s*#import\s+nat:\s*([a-zA-Z0-9_.]+)(?:\s+mod:\s*([a-zA-Z0-9_]+))?\s*;?\s*$/gm;
+            const importClgRegex = /^\s*#import\s+clg:\s*([a-zA-Z0-9_.]+)\s*;?\s*$/gm;
+            const importDirectRegex = /^\s*#import\s+([a-zA-Z0-9_.]+)\s*;?\s*$/gm;
+            const compiledRegex = /^\s*#compiled\s+([a-zA-Z0-9_.]+)\s*;?\s*$/gm;
+            let bundledDependencies = "";
+            const installMatches = [...content.matchAll(installRegex)];
+            for (const match of installMatches) {
+                try {
+                    const res = await fetch(match[1].trim());
+                    bundledDependencies += `\n${await res.text()}\n\n`;
+                } catch (e) { console.error("Install Error", e); }
+            }
+            content = content.replace(installRegex, '');
+            const importNatMatches = [...content.matchAll(importRegex)];
+            for (const match of importNatMatches) {
+                const natFile = match[1].trim();
+                const module = match[2] ? match[2].trim() : null;
+                bundledDependencies += await processFile(natFile, module) + "\n\n";
+            }
+            content = content.replace(importRegex, '');
+            const importClgMatches = [...content.matchAll(importClgRegex)];
+            for (const match of importClgMatches) {
+                bundledDependencies += await processFile(match[1].trim()) + "\n\n";
+            }
+            content = content.replace(importClgRegex, '');
+            const importDirectMatches = [...content.matchAll(importDirectRegex)];
+            for (const match of importDirectMatches) {
+                let file = match[1].trim();
+                if (!file.endsWith('.clg') && !file.endsWith('.nat')) {
+                    file += '.clg';
+                }
+                bundledDependencies += await processFile(file) + "\n\n";
+            }
+            content = content.replace(importDirectRegex, '');
+            const compiledMatches = [...content.matchAll(compiledRegex)];
+            for (const match of compiledMatches) {
+                bundledDependencies += await processFile(match[1].trim()) + "\n\n";
+            }
+            content = content.replace(compiledRegex, '');
+
+            return `\n${bundledDependencies}\n${content}\n`;
         }
 
-        jsCode = jsCode.replace(/cin\.take\.int\s*\((.*?)\);?/g, (match, p1) => {
-            return `parseInt(prompt(${p1}))`;
-        });
+        return await processFile(startFile);
+    }
 
-        jsCode = jsCode.replace(/cin\.take\.string\s*\((.*?)\);?/g, (match, p1) => {
-            return `prompt(${p1})`;
-        });
+    function _containsSpecialCommand(code) {
+        if (code.includes('cmd.fn')) return true;
+        if (code.includes('cmd.save')) return true;
+        if (code.includes('create.ctfile')) return true;
+        if (code.includes('create.ctfolder')) return true;
+        const hashCommands = ['#import', '#install', '#compiled'];
+        for (const cmd of hashCommands) {
+            const regex = new RegExp(`^\\s*${cmd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gm');
+            if (regex.test(code)) return true;
+        }
+        return false;
+    }
 
-        jsCode = jsCode.replace(/cin\.prompt\.bool\s*\((.*?)\);?/g, (match, p1) => {
-            return `confirm(${p1})`;
-        });
+    function _transpile(constlangCode) {
+        console.log("[TRANSPILE] Compiler loading...");
+        let jsCode = constlangCode;
+        let passCount = 0;
+        const hasSpecialCommands = _containsSpecialCommand(jsCode);
+        
+        if (hasSpecialCommands) {
+            console.log("[PHASE 1-4] Special commands detected. Starting multi-pass compilation loop...");
+            
+            while (passCount < MAX_COMPILATION_PASSES) {
+                passCount++;
+                const beforeCode = jsCode;
+                console.log(`[PASS ${passCount}] Processing...`);
+                const macros = [];
+                const macroRegex = /cmd\.fn\(\)\s*\[\s*([\s\S]*?)\s*command\(\)\s*([\s\S]*?)\s*\]/g;
+                jsCode = jsCode.replace(macroRegex, (match, pattern, template) => {
+                    macros.push({ pattern: pattern.trim(), template: template.trim() });
+                    return "";
+                });
 
-        jsCode = jsCode.replace(/cout\.show\s*\((.*?)\);?/g, (match, p1) => {
-            return `console.log(${p1});`;
-        });
+                for (const macro of macros) {
+                    let regexPattern = macro.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const varNames = [];
+                    regexPattern = regexPattern.replace(/\\\$\\\{cmd\\\^(.*?)\\\}/g, (match, varName) => {
+                        varNames.push(varName);
+                        return '([\\s\\S]*?)';
+                    });
+                    
+                    let jsTemplate = macro.template;
+                    for (let i = 0; i < varNames.length; i++) {
+                        jsTemplate = jsTemplate.replace(new RegExp(`\\$\\{cmd\\^${varNames[i]}\\}|\\$\\{${varNames[i]}}`, 'g'), `$${i + 1}`);
+                    }
+                    try { jsCode = jsCode.replace(new RegExp(regexPattern, 'gm'), jsTemplate); } catch (e) {}
+                }
+                jsCode = jsCode.replace(/cmd\.save\(\s*([^)]*)\s*\)/g, 'Console.WriteLine($1);');
+                jsCode = jsCode.replace(/create\.ctfolder\s*\(\s*([a-zA-Z0-9_"'\s]+)\s*\)/g, 'Directory.CreateDirectory($1);');
+                jsCode = jsCode.replace(/create\.ctfile\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*\{([\s\S]*?)\}/g, 
+                    (match, filename, varname, content) => {
+                        return `File.WriteAllText(${filename}, @"${content.trim()}");`;
+                    }
+                );
 
-        jsCode = jsCode.replace(/cout\.window\s*\((.*?)\);?/g, (match, p1) => {
-            return `alert(${p1});`;
-        });
+                if (!_containsSpecialCommand(jsCode)) {
+                    console.log(`[PASS ${passCount}/PHASE 5] Validation complete. No special commands found. Loop exiting.`);
+                    break;
+                }
 
-        jsCode = jsCode.replace(/web\.html\.get\s*\(["']([^"']+)["']\);?/g, (match, elementId) => {
-            return `document.getElementById("${elementId}")`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.getElement\s*\(["']([^"']+)["']\);?/g, (match, selector) => {
-            return `document.querySelector("${selector}")`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.getAllElements\s*\(["']([^"']+)["']\);?/g, (match, selector) => {
-            return `document.querySelectorAll("${selector}")`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.content\s*\(([^,]+),\s*["']([^"']+)["']\);?/g, (match, element, content) => {
-            return `${element}.innerHTML = "${content}";`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.value\s*\(([^,]+),\s*["']([^"']+)["']\);?/g, (match, element, value) => {
-            return `${element}.value = "${value}";`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.style\s*\(([^,]+),\s*["']([^"']+)["'],\s*["']([^"']+)["']\);?/g, 
-            (match, element, property, value) => {
-                return `${element}.style.${property} = "${value}";`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.addClass\s*\(([^,]+),\s*["']([^"']+)["']\);?/g, (match, element, className) => {
-            return `${element}.classList.add("${className}");`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.removeClass\s*\(([^,]+),\s*["']([^"']+)["']\);?/g, (match, element, className) => {
-            return `${element}.classList.remove("${className}");`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.toggleClass\s*\(([^,]+),\s*["']([^"']+)["']\);?/g, (match, element, className) => {
-            return `${element}.classList.toggle("${className}");`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.attribute\s*\(([^,]+),\s*["']([^"']+)["'],\s*["']([^"']+)["']\);?/g, 
-            (match, element, attr, value) => {
-                return `${element}.setAttribute("${attr}", "${value}");`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.removeAttribute\s*\(([^,]+),\s*["']([^"']+)["']\);?/g, (match, element, attr) => {
-            return `${element}.removeAttribute("${attr}");`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.create\s*\(["']([^"']+)["']\);?/g, (match, tagName) => {
-            return `document.createElement("${tagName}")`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.append\s*\(([^,]+),\s*([^)]+)\);?/g, (match, parent, child) => {
-            return `${parent}.appendChild(${child});`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.remove\s*\(([^)]+)\);?/g, (match, element) => {
-            return `${element}.remove();`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.text\s*\(([^,]+),\s*["']([^"']+)["']\);?/g, (match, element, text) => {
-            return `${element}.textContent = "${text}";`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.listener\s*\(([^,]+),\s*["']([^"']+)["'],\s*([^)]+)\);?/g, 
-            (match, element, event, handler) => {
-                return `${element}.addEventListener("${event}", ${handler});`;
-        });
-
-        jsCode = jsCode.replace(/web\.html\.removeListener\s*\(([^,]+),\s*["']([^"']+)["'],\s*([^)]+)\);?/g, 
-            (match, element, event, handler) => {
-                return `${element}.removeEventListener("${event}", ${handler});`;
-        });
-
-        jsCode = jsCode.replace(/web\.url\.get\s*\(\s*["']([^"']+)["']\s*,\s*action\s*=\s*({[\s\S]*?})\s*\);?/g, (match, urlParam, actionContent) => {
-            actionContent = actionContent.trim();
-
-            let output = "";
-            if (actionContent.includes('var=')) {
-                const varName = actionContent.match(/var\s*=\s*["']?([a-zA-Z0-9_]+)["']?/)[1];
-                output = `let ${varName} = new URLSearchParams(window.location.search).get("${urlParam}");`;
-            } else if (actionContent.includes('json.search=')) {
-                output = `// JSON search`;
-            } else if (actionContent.includes('html.list=')) {
-                output = `// HTML list`;
+                if (jsCode === beforeCode) {
+                    console.log(`[PASS ${passCount}/PHASE 5] No changes detected in this pass but special commands remain.`);
+                    console.error(`COMPILATION ERROR: Maximum passes (${MAX_COMPILATION_PASSES}) exceeded. Some special commands remain unprocessed.`);
+                    console.error("Remaining special commands cannot be processed. Compilation rejected.");
+                    return null;
+                }
             }
-            return output;
-        });
-          jsCode = jsCode.replace(/^\s*static\s+int256\s+([a-zA-Z0-9_]+)\s*=\s*([0-9]+);?/gm, 'const $1 = BigInt($2);');
-        jsCode = jsCode.replace(/^\s*static\s+int512\s+([a-zA-Z0-9_]+)\s*=\s*([0-9]+);?/gm, 'const $1 = BigInt($2);');
-        jsCode = jsCode.replace(/^\s*static\s+int1024\s+([a-zA-Z0-9_]+)\s*=\s*([0-9]+);?/gm, 'const $1 = BigInt($2);');
-        jsCode = jsCode.replace(/^\s*int256\s+([a-zA-Z0-9_]+)\s*=\s*([0-9]+);?/gm, 'let $1 = BigInt($2);');
-        jsCode = jsCode.replace(/^\s*int512\s+([a-zA-Z0-9_]+)\s*=\s*([0-9]+);?/gm, 'let $1 = BigInt($2);');
-        jsCode = jsCode.replace(/^\s*int1024\s+([a-zA-Z0-9_]+)\s*=\s*([0-9]+);?/gm, 'let $1 = BigInt($2);');
-        jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*char\.i09\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*byte\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*redata\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'console.log($1);');
-        jsCode = jsCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'console.error($1);');
-        jsCode = jsCode.replace(/console\.status\s*\(\s*\);?/g, 'console.log(new Date());');
-        jsCode = jsCode.replace(/console\.color\s*\("(.*?)"\);?/g, '// Color: $1');
-        jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'alert($1);');
-        jsCode = jsCode.replace(/system\.beep\(([\s\S]*?)\);?/g, '// Beep sound');
-        jsCode = jsCode.replace(/file\.add\(([\s\S]*?)\);?/g, '// Write file: $1');
-        jsCode = jsCode.replace(/file\.load\(([\s\S]*?)\);?/g, 'await fetch($1).then(r => r.text());');
-        jsCode = jsCode.replace(/file\.move\(([\s\S]*?)\);?/g, '// Move file: $1');
-        jsCode = jsCode.replace(/file\.copy\(([\s\S]*?)\);?/g, '// Copy file: $1');
-        jsCode = jsCode.replace(/file\.redata\(([\s\S]*?)\);?/g, '// Stream: $1');
-        jsCode = jsCode.replace(/open\.file\(([\s\S]*?)\);?/g, 'await fetch($1).then(r => r.text());');
-        jsCode = jsCode.replace(/open\.folder\(([\s\S]*?)\);?/g, '// Open folder: $1');
-        jsCode = jsCode.replace(/open\.window\(([\s\S]*?)\);?/g, 'window.open($1);');
-        jsCode = jsCode.replace(/folder\.add\(([\s\S]*?)\);?/g, '// Create folder: $1');
-        jsCode = jsCode.replace(/folder\.move\(([\s\S]*?)\);?/g, '// Move folder: $1');
-        jsCode = jsCode.replace(/folder\.fileinfo\(([\s\S]*?)\);?/g, '// List files: $1');
-        jsCode = jsCode.replace(/folder\.folderinfo\(([\s\S]*?)\);?/g, '// List folders: $1');
-        jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'parseInt(prompt($1));');
-        jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'parseInt(prompt($1));');
-        jsCode = jsCode.replace(/read\.int64\s*\(([\s\S]*?)\);?/g, 'parseInt(prompt($1));');
-        jsCode = jsCode.replace(/read\.intx\s*\(([\s\S]*?)\);?/g, 'parseFloat(prompt($1));');
-        jsCode = jsCode.replace(/read\.string\s*\(([\s\S]*?)\);?/g, 'prompt($1);');
-        jsCode = jsCode.replace(/read\.byte\s*\(([\s\S]*?)\);?/g, 'parseInt(prompt($1));');
-        jsCode = jsCode.replace(/read\.base64\s*\(([\s\S]*?)\);?/g, 'btoa(prompt($1));');
-        jsCode = jsCode.replace(/read\.data\s*\(([\s\S]*?)\);?/g, 'prompt($1);');
-        jsCode = jsCode.replace(/read\.title\(([\s\S]*?)\);?/g, 'prompt($1);');
-        jsCode = jsCode.replace(/to\.int32\s*\(([\s\S]*?)\);?/g, 'parseInt($1);');
-        jsCode = jsCode.replace(/to\.int16\s*\(([\s\S]*?)\);?/g, 'parseInt($1);');
-        jsCode = jsCode.replace(/to\.int64\s*\(([\s\S]*?)\);?/g, 'parseInt($1);');
-        jsCode = jsCode.replace(/to\.int128\s*\(([\s\S]*?)\);?/g, 'parseInt($1);');
-        jsCode = jsCode.replace(/to\.string\s*\(([\s\S]*?)\);?/g, 'String($1);');
-        jsCode = jsCode.replace(/to\.intx\s*\(([\s\S]*?)\);?/g, 'parseFloat($1);');
-        jsCode = jsCode.replace(/to\.byte\s*\(([\s\S]*?)\);?/g, 'parseInt($1);');
-        jsCode = jsCode.replace(/to\.ft\s*\(([\s\S]*?)\);?/g, 'Boolean($1);');
-        jsCode = jsCode.replace(/to\.base64\s*\(([\s\S]*?)\);?/g, 'btoa($1);');
-        jsCode = jsCode.replace(/converter\.utf8\.byte\s*\(([\s\S]*?)\);?/g, 'new TextEncoder().encode($1);');
-        jsCode = jsCode.replace(/get\s*\(([\s\S]*?)\);?/g, 'await fetch($1).then(r => r.json());');
-        jsCode = jsCode.replace(/oldcommand1\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
-            'let $2 = await fetch("$1").then(r => r.json());');
-        jsCode = jsCode.replace(/http\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
-            '// HTTP removed');
-        jsCode = jsCode.replace(/ip\.parse\s*\(([\s\S]*?)\);?/g, '// IP parse: $1');
-        jsCode = jsCode.replace(/ip\.endpoint\s*\(([\s\S]*?)\);?/g, '// IP endpoint: $1');
-        jsCode = jsCode.replace(/.ip\.streamr\s*\(([\s\S]*?)\);?/g, '// Network stream: $1');
-        jsCode = jsCode.replace(/\.write\(([\s\S]*?)\);?/g, '.write($1);');
-        const linkReqRegex = /link\.request\s*\(\s*\)\s*\{([\s\S]*?)\}/g;
-        jsCode = jsCode.replace(linkReqRegex, (match, innerBlock) => {
-            const urlMatch = innerBlock.match(/request\.url\s*\(\s*["']?(.*?)["']?\s*\)/);
-            if (!urlMatch) return "";
-            const urlParam = urlMatch[1];
-
-            const dataMatch = innerBlock.match(/data\.main\s*\(\s*(.*?)\s*\)/);
-            if (!dataMatch) return "";
-            const actionContent = dataMatch[1];
-
-            let output = "";
-            if (actionContent.includes('var=')) {
-                const varName = actionContent.match(/var\s*=\s*["']?([a-zA-Z0-9_]+)["']?/)[1];
-                output = `let ${varName} = new URLSearchParams(window.location.search).get("${urlParam}");`;
-            } else if (actionContent.includes('json.search=')) {
-                output = `// JSON search`;
-            } else if (actionContent.includes('html.list=')) {
-                output = `// HTML list`;
+            if (passCount >= MAX_COMPILATION_PASSES && _containsSpecialCommand(jsCode)) {
+                console.error(`COMPILATION ERROR: Maximum passes (${MAX_COMPILATION_PASSES}) exceeded. Some special commands remain unprocessed.`);
+                console.error("Remaining special commands detected. Compilation rejected.");
+                return null;
             }
-            return output;
+        } else {
+            console.log("[PHASE 1-4] No special commands found in initial code. Skipping loop.");
+        }
+        if (_containsSpecialCommand(jsCode)) {
+            console.error(`COMPILATION ERROR: Special commands remain after compilation.`);
+            console.error("Cannot proceed to PHASE 6. Compilation rejected.");
+            return null;
+        }
+
+        jsCode = jsCode.replace(/\/\/.*/g, '//');
+        jsCode = jsCode.replace(/\/\*[\s\S]*?\*\//g, '');
+
+        const guiRegex = /config\s*\(\s*\)\s*\{([\s\S]*?)\}/g;
+        jsCode = jsCode.replace(guiRegex, (match, htmlContent) => {
+            extractedHTMLCache += htmlContent.trim() + "\n";
+            return "";
         });
         jsCode = jsCode.replace(/system\.os\s*\(([\s\S]*?)\);?/g, '"web"');
         jsCode = jsCode.replace(/text\s*\(([\s\S]*?)\);?/g, '"$1"');
@@ -509,9 +280,25 @@
         jsCode = jsCode.replace(/\breturn\s+/g, 'return ');
         jsCode = jsCode.replace(/wait\.ms\s*\(([\s\S]*?)\);?/g, 'await new Promise(r => setTimeout(r, $1));');
         jsCode = jsCode.replace(/.all\s*\(([\s\S]*?)\);?/g, 'Promise.all($1);');
+        
 
-        console.log("[PHASE 6] Final validation...");
-        console.log("[COMPILATION] Successfully completed!");
+
+            jsCode = jsCode.replace(/\bawait\s+/g, 'await ');
+            jsCode = jsCode.replace(/wait\.ms\s*\(([\s\S]*?)\);?/g, 'await Task.Delay($1);');
+        console.log("[PHASE 6] Final validation and unknown command check...");
+        const unknownCommandRegex = null;
+        const matches = jsCode.match(unknownCommandRegex) || [];
+        const knownCommands = true;
+
+        for (const match of matches) {
+            const cmd = match.trim().split('(')[0];
+            if (!knownCommands.some(known => known.includes(cmd)) && !cmd.includes('.') && cmd.length > 0) {
+                console.error(`UNKNOWN COMMAND ERROR: '${cmd}' is not recognized by the compiler.`);
+                return null;
+            }
+        }
+
+        console.log("[COMPILATION] Successfully completed all passes and validation.");
         return jsCode;
     }
 
@@ -543,11 +330,13 @@
             const jsBody = _transpile(bundledCode);
             
             if (!jsBody) {
-                console.error("[COMPILATION FAILED]");
+                console.error("[COMPILATION FAILED] Transpilation returned null. Check error log above.");
                 return;
             }
 
-            compiledJSCache = jsBody;
+            compiledJSCache = `
+${jsBody}
+`;
 
             console.log("%c[COMPILATION SUCCESSFUL]", "color: lime; font-weight: bold;");
             console.log("Download with: 'compiler.download()'.");
@@ -558,39 +347,29 @@
         }
     };
 
-    compiler.download = function(filename = "main.js") {
+    compiler.download = function(filename = "main.cs") {
         if (!compiledJSCache) {
             console.error("Please run 'compiler.start()' first!");
             return;
         }
 
-        console.log("Downloading JavaScript File...");
+        console.log("Downloading C# File...");
         _downloadFile(filename, compiledJSCache);
 
         if (extractedHTMLCache.trim() !== "") {
-            console.log("Downloading HTML File...");
+            console.log("Downloading Config File...");
             const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>CLG Application</title>
-</head>
-<body>
 ${extractedHTMLCache}
-    <script src="${filename}"><\/script>
-</body>
-</html>
 `;
-            _downloadFile("index.html", htmlContent);
+            _downloadFile("config.csproj", htmlContent);
         }
     };
 
     compiler.compile = async function() {
-        console.log(`%c[JS COMPILATION START]`, "color: yellow; font-weight: bold;");
+        console.log(`%c[BATCH COMPILATION START]`, "color: yellow; font-weight: bold;");
         await compiler.add();
         await compiler.start();
-        console.log(`%c[JS COMPILATION COMPLETE]`, "color: yellow; font-weight: bold;");
+        console.log(`%c[BATCH COMPILATION COMPLETE]`, "color: yellow; font-weight: bold;");
     };
 
     global.compiler = compiler;
