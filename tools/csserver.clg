@@ -1,0 +1,5 @@
+cmd.fn() [
+server.cmd(${cmd^server})
+command()
+ ${cmd^server}
+]
