@@ -1,0 +1,13 @@
+import (
+    "fmt"  
+    "net/http" 
+    "encoding/json" 
+    "log"  
+    "time"  
+)
+
+cmd.fn() [
+goserver(${cmd^server})
+command()
+${cmd^server}
+]

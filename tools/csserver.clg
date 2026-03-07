@@ -1,0 +1,11 @@
+lib.cs(System);
+lib.cs(System.Net.Http);
+lib.cs(System.Text.Json);
+lib.cs(System.Linq);
+lib.cs(System.Threading.Tasks);
+
+cmd.fn() [
+server.cmd(${cmd^server})
+command()
+ ${cmd^server}
+]
