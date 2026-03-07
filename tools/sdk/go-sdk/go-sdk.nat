@@ -1,0 +1,27 @@
+<module="log">
+ft weblog = true
+cmd.fn() [
+console.print.log(${cmd^log})
+command()
+console.print("[LOG]" + ${cmd^log});
+]
+cmd.fn() [
+console.print.error(${cmd^log})
+command()
+console.error("[ERROR]" + ${cmd^log});
+]
+<module>
+
+<module="gotools">
+cmd.fn() [
+    go.lib(${cmd^lib})
+    command()
+    import ${cmd^lib}
+]
+
+cmd.fn() [
+    go.cmd(${cmd^gocode})
+    command()
+    addon.app() { ${cmd^gocode} }
+ ]
+ <module>
