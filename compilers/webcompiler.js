@@ -4,33 +4,188 @@
     const entryPoint = 'main.clg';
     let MAX_COMPILATION_PASSES = 249;
     const SPECIAL_COMMANDS = ['#import', '#install', '#compiled', 'cmd.fn', 'cmd.save', 'create.ctfile', 'create.ctfolder'];
+    
+    // IndexedDB Konfigürasyonu
+    const DB_NAME = 'AppCompilerDB';
+    const STORE_NAME = 'files';
+    let db = null;
 
-    function _downloadFile(filename, text) {
-        const element = document.createElement('a');
-        let mimeType = 'text/plain';
-        if(filename.endsWith('.html')) mimeType = 'text/html';
-        if(filename.endsWith('.cs')) mimeType = 'text/plain';
-        
-        element.setAttribute('href', `data:${mimeType};charset=utf-8,` + encodeURIComponent(text));
-        element.setAttribute('download', filename);
-        element.style.display = 'none';
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
+    // IndexedDB başlatma
+    function initializeIndexedDB() {
+        return new Promise((resolve, reject) => {
+            if (typeof window === 'undefined' || !window.indexedDB) {
+                reject(new Error("IndexedDB not available"));
+                return;
+            }
+            
+            const request = indexedDB.open(DB_NAME, 1);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                db = request.result;
+                resolve(db);
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const database = event.target.result;
+                if (!database.objectStoreNames.contains(STORE_NAME)) {
+                    database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                }
+            };
+        });
     }
 
-    async function _traverseDirectory(handle, path = "") {
-        for await (const entry of handle.values()) {
-            if (entry.kind === 'file') {
-                const file = await entry.getFile();
-                if (entry.name.endsWith('.clg') || entry.name.endsWith('.nat')) {
-                    const content = await file.text();
-                    sessionStorage.setItem(entry.name, content);
-                    console.log(`[READ] ${entry.name}`);
-                }
-            } else if (entry.kind === 'directory') {
-                await _traverseDirectory(entry, path ? `${path}/${entry.name}` : entry.name);
+    // Dosyayı IndexedDB'ye kaydet
+    function saveToIndexedDB(filename, content, folderPath) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject(new Error("Database not initialized"));
+                return;
             }
+            
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            
+            const data = {
+                filename: filename,
+                content: content,
+                folderPath: folderPath,
+                timestamp: new Date().getTime()
+            };
+            
+            const request = store.add(data);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+        });
+    }
+
+    // Tüm dosyaları IndexedDB'den getir
+    function getAllFilesFromIndexedDB(folderPath) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject(new Error("Database not initialized"));
+                return;
+            }
+            
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const files = request.result.filter(f => f.folderPath === folderPath);
+                resolve(files);
+            };
+        });
+    }
+
+    // IndexedDB'den dosyaları sil
+    function deleteFilesFromIndexedDB(folderPath) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject(new Error("Database not initialized"));
+                return;
+            }
+            
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const files = request.result.filter(f => f.folderPath === folderPath);
+                files.forEach(file => {
+                    store.delete(file.id);
+                });
+                resolve();
+            };
+        });
+    }
+
+    // Electron fs modülü kontrolü
+    function getFileSystem() {
+        try {
+            if (typeof require !== 'undefined') {
+                return require('fs').promises;
+            }
+        } catch (e) {
+            // Node.js ortamında değil
+        }
+        return null;
+    }
+
+    async function _downloadFile(filename, text, downloadPath = null) {
+        const fs = getFileSystem();
+        
+        if (fs && downloadPath) {
+            try {
+                const path = require('path');
+                const filePath = path.join(downloadPath, filename);
+                const dir = path.dirname(filePath);
+                try {
+                    await fs.mkdir(dir, { recursive: true });
+                } catch (e) {
+                
+                }
+                
+                await fs.writeFile(filePath, text, 'utf-8');
+                console.log(`[DOWNLOAD] File saved to: ${filePath}`);
+                return true;
+            } catch (e) {
+                console.error("File write error:", e);
+                return false;
+            }
+        } else {
+            const element = document.createElement('a');
+            let mimeType = 'text/plain';
+            if(filename.endsWith('.html')) mimeType = 'text/html';
+            if(filename.endsWith('.js')) mimeType = 'text/plain';
+            
+            element.setAttribute('href', `data:${mimeType};charset=utf-8,` + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            return true;
+        }
+    }
+
+    async function _traverseDirectory(folderPath) {
+        const fs = getFileSystem();
+        
+        if (!fs) {
+            console.error("File system not available. Running in browser mode.");
+            return;
+        }
+        
+        try {
+            const path = require('path');
+            
+            async function traverse(currentPath, baseFolder) {
+                const entries = await fs.readdir(currentPath, { withFileTypes: true });
+                
+                for (const entry of entries) {
+                    const fullPath = path.join(currentPath, entry.name);
+                    const relativePath = path.relative(baseFolder, fullPath);
+                    
+                    if (entry.isFile()) {
+                        if (entry.name.endsWith('.clg') || entry.name.endsWith('.nat')) {
+                            const content = await fs.readFile(fullPath, 'utf-8');
+                            await saveToIndexedDB(entry.name, content, baseFolder);
+                            sessionStorage.setItem(entry.name, content);
+                            console.log(`[READ] ${relativePath}`);
+                        }
+                    } else if (entry.isDirectory()) {
+                        await traverse(fullPath, baseFolder);
+                    }
+                }
+            }
+            
+            await traverse(folderPath, folderPath);
+        } catch (e) {
+            console.error("Directory traversal error:", e);
+            throw e;
         }
     }
 
@@ -149,88 +304,149 @@
                 const beforeCode = jsCode;
                 console.log(`[PASS ${passCount}] Processing...`);
                 const macros = [];
-                const macroRegex = /cmd\.fn\(\)\s*\[\s*([\s\S]*?)\s*command\(\)\s*([\s\S]*?)\s*\]/g;
+                const macroRegex = /cmd\.fn\(\)\s*\[\s*([\s\S]*?)\s*;cmd\(\)\s*([\s\S]*?)\s*\]/g;
                 jsCode = jsCode.replace(macroRegex, (match, pattern, template) => {
                     macros.push({ pattern: pattern.trim(), template: template.trim() });
                     return "";
                 });
 
                 for (const macro of macros) {
-                    let regexPattern = macro.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const varNames = [];
-                    regexPattern = regexPattern.replace(/\\\$\\\{cmd\\\^(.*?)\\\}/g, (match, varName) => {
-                        varNames.push(varName);
-                        return '([\\s\\S]*?)';
+                    let regexPattern = macro.pattern;
+                    const varMatches = regexPattern.match(/\$\{(\w+)\}/g) || [];
+                    let groupIndex = 1;
+                    const varMap = {};
+                    
+                    varMatches.forEach(varMatch => {
+                        const varName = varMatch.slice(2, -1); // ${out} -> out
+                        varMap[varName] = `$${groupIndex}`;
+                        regexPattern = regexPattern.replace(varMatch, `__VAR_${groupIndex}__`);
+                        groupIndex++;
                     });
                     
-                    let jsTemplate = macro.template;
-                    for (let i = 0; i < varNames.length; i++) {
-                        jsTemplate = jsTemplate.replace(new RegExp(`\\$\\{cmd\\^${varNames[i]}\\}|\\$\\{${varNames[i]}}`, 'g'), `$${i + 1}`);
+                    regexPattern = regexPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    for (let i = 1; i < groupIndex; i++) {
+                        regexPattern = regexPattern.replace(
+                            `__VAR_${i}__`, 
+                            '([\\s\\S]*?)'
+                        );
                     }
-                    try { jsCode = jsCode.replace(new RegExp(regexPattern, 'gm'), jsTemplate); } catch (e) {}
+                    
+                    // Template'deki ${var} -> $1 şeklinde değiştir
+                    let finalTemplate = macro.template;
+                    Object.entries(varMap).forEach(([varName, groupRef]) => {
+                        finalTemplate = finalTemplate.replace(
+                            new RegExp(`\\$\\{${varName}\\}`, 'g'), 
+                            groupRef
+                        );
+                    });
+                    
+                    // Regex'i oluştur ve TÜM EŞLEŞMELERİ değiştir (global flag VAR)
+                    try {
+                        const patternRegex = new RegExp(regexPattern, 'g');
+                        jsCode = jsCode.replace(patternRegex, finalTemplate);
+                    } catch (e) {
+                        console.error(`[MACRO ERROR] Invalid pattern: "${macro.pattern}"`, e);
+                    }
                 }
-                jsCode = jsCode.replace(/cmd\.save\(\s*([^)]*)\s*\)/g, 'Console.WriteLine($1);');
-                jsCode = jsCode.replace(/create\.ctfolder\s*\(\s*([a-zA-Z0-9_"'\s]+)\s*\)/g, 'Directory.CreateDirectory($1);');
-                jsCode = jsCode.replace(/create\.ctfile\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*\{([\s\S]*?)\}/g, 
-                    (match, filename, varname, content) => {
-                        return `File.WriteAllText(${filename}, @"${content.trim()}");`;
-                    }
-                );
 
-                if (!_containsSpecialCommand(jsCode)) {
-                    console.log(`[PASS ${passCount}/PHASE 5] Validation complete. No special commands found. Loop exiting.`);
-                    break;
-                }
+                const saveRegex = /cmd\.save\s*\(\s*"([^"]*)"\s*,\s*([\s\S]*?)\s*\)\s*;?/g;
+                jsCode = jsCode.replace(saveRegex, (match, varName, content) => {
+                    return `\nwindow.COMPILED_CONFIG = window.COMPILED_CONFIG || {};\nwindow.COMPILED_CONFIG['${varName}'] = ${content};\n`;
+                });
+
+                const ctFileRegex = /create\.ctfile\s*\(\s*"([^"]*)"\s*,\s*"([^"]*)"\s*\)\s*;?/g;
+                jsCode = jsCode.replace(ctFileRegex, (match, filename, content) => {
+                    return `\nwindow.COMPILED_FILES = window.COMPILED_FILES || {};\nwindow.COMPILED_FILES['${filename}'] = \`${content}\`;\n`;
+                });
+
+                const ctFolderRegex = /create\.ctfolder\s*\(\s*"([^"]*)"\s*\)\s*;?/g;
+                jsCode = jsCode.replace(ctFolderRegex, (match, folderName) => {
+                    return `\nwindow.COMPILED_FOLDERS = window.COMPILED_FOLDERS || [];\nwindow.COMPILED_FOLDERS.push('${folderName}');\n`;
+                });
 
                 if (jsCode === beforeCode) {
-                    console.log(`[PASS ${passCount}/PHASE 5] No changes detected in this pass but special commands remain.`);
-                    console.error(`COMPILATION ERROR: Maximum passes (${MAX_COMPILATION_PASSES}) exceeded. Some special commands remain unprocessed.`);
-                    console.error("Remaining special commands cannot be processed. Compilation rejected.");
-                    return null;
+                    console.log(`[PASS ${passCount}] No changes detected. Exiting compilation loop.`);
+                    break;
                 }
             }
-            if (passCount >= MAX_COMPILATION_PASSES && _containsSpecialCommand(jsCode)) {
-                console.error(`COMPILATION ERROR: Maximum passes (${MAX_COMPILATION_PASSES}) exceeded. Some special commands remain unprocessed.`);
-                console.error("Remaining special commands detected. Compilation rejected.");
-                return null;
+        }
+
+        console.log("[PHASE 2] Transpiling syntax...");
+  
+        jsCode = jsCode.replace(/in\.main\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        jsCode = jsCode.replace(/in\.main\.app\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        jsCode = jsCode.replace(/in\.main\.linux64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.mac64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.linux32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.win32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.win64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.docker\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.sh\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.bat\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.web\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        jsCode = jsCode.replace(/in\.main\.mobile\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+
+        jsCode = jsCode.replace(/oldcommand1\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
+            'string $2 = await fetch("$1").then(r => r.json());');
+
+        jsCode = jsCode.replace(/http\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
+            'Console.Error.WriteLine("Code removed");');
+
+        const linkReqRegex = /link\.request\s*\(\s*\)\s*\{([\s\S]*?)\}/g;
+        jsCode = jsCode.replace(linkReqRegex, (match, innerBlock) => {
+            const urlMatch = innerBlock.match(/request\.url\s*\(\s*["']?(.*?)["']?\s*\)/);
+            if (!urlMatch) return "";
+            const urlParam = urlMatch[1];
+
+            const dataMatch = innerBlock.match(/data\.main\s*\(\s*(.*?)\s*\)/);
+            if (!dataMatch) return "";
+            const actionContent = dataMatch[1];
+
+            let output = "";
+            
+            if (actionContent.includes('var=')) {
+                const varName = actionContent.match(/var\s*=\s*["']?([a-zA-Z0-9_]+)["']?/)[1];
+                output = `let ${varName} = new URLSearchParams(window.location.search).get("${urlParam}");`;
+            } else if (actionContent.includes('json.search=')) {
+                output = `
+                {
+                   Console.Error.WriteLine("Code removed"); 
+                }`;
+            } else if (actionContent.includes('html.list=')) {
+                output = `Console.WriteLine("Code removed");`;
             }
-        } else {
-            console.log("[PHASE 1-4] No special commands found in initial code. Skipping loop.");
-        }
-        if (_containsSpecialCommand(jsCode)) {
-            console.error(`COMPILATION ERROR: Special commands remain after compilation.`);
-            console.error("Cannot proceed to PHASE 6. Compilation rejected.");
-            return null;
-        }
-
-        jsCode = jsCode.replace(/\/\/.*/g, '//');
-        jsCode = jsCode.replace(/\/\*[\s\S]*?\*\//g, '');
-
-        const guiRegex = /config\s*\(\s*\)\s*\{([\s\S]*?)\}/g;
-        jsCode = jsCode.replace(guiRegex, (match, htmlContent) => {
-            extractedHTMLCache += htmlContent.trim() + "\n";
-            return "";
+            return output;
         });
+
+        jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
+        jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
+        jsCode = jsCode.replace(/do \s*\{([\s\S]*?)\};?/g, 'do {$1}');
+        jsCode = jsCode.replace(/try \s*\{([\s\S]*?)\};?/g, 'try {$1}');
+        jsCode = jsCode.replace(/finally \s*\{([\s\S]*?)\};?/g, 'finally {$1}');
         jsCode = jsCode.replace(/system\.os\s*\(([\s\S]*?)\);?/g, '"web"');
-                jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+Int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*static\s+ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
-        jsCode = jsCode.replace(/^\s*redata\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, ' $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+Int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+double\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+bool\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, ' $1 = $2;');
         jsCode = jsCode.replace(/^\s*byte\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'byte[] $1 = $2;');
         jsCode = jsCode.replace(/^\s*byte\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'char[] $1 = $2;');
-        jsCode = jsCode.replace(/^\s*int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int32 $1 = $2;');
-        jsCode = jsCode.replace(/^\s*int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int64 $1 = $2;');
-        jsCode = jsCode.replace(/^\s*int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int128 $1 = $2;');
-        jsCode = jsCode.replace(/^\s*intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'double $1 = $2;');
-        jsCode = jsCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'string $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*double\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*float\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*decimal\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+float\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*const\s+decimal\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const $1 = $2;');
+        jsCode = jsCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
         jsCode = jsCode.replace(/^\s*char\.i09\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'char.IsDigit');
-        jsCode = jsCode.replace(/^\s*ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
+        jsCode = jsCode.replace(/^\s*bool\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
         jsCode = jsCode.replace(/^\s*redata\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, ' $1 = $2;');
         jsCode = jsCode.replace(/^\s*byte\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'byte[] $1 = $2;');
         jsCode = jsCode.replace(/^\s*char\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'char[] $1 = $2;');
@@ -241,9 +457,10 @@
         jsCode = jsCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
         jsCode = jsCode.replace(/^\s*char\.i09\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'char.IsDigit');
         jsCode = jsCode.replace(/^\s*ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'let $1 = $2;');
-        jsCode = jsCode.replace(/console\.print\s*\(([\s\S]*?)\);?/g, 'console.log($1)');
+        jsCode = jsCode.replace(/console\.println\s*\(([\s\S]*?)\);?/g, 'console.log($1)');
         jsCode = jsCode.replace(/console\.error\s*\(([\s\S]*?)\);?/g, 'console.error($1)');
         jsCode = jsCode.replace(/text\s*\(([\s\S]*?)\);?/g, '"$1"');
+        jsCode = jsCode.replace(/open\.file\(([\s\S]*?)\);?/g, '');
         jsCode = jsCode.replace(/system\.time\(([\s\S]*?)\);?/g, 'await new Promise(r => setTimeout(r, $1));');
         jsCode = jsCode.replace(/system\.stop\s*\(([\s\S]*?)\);?/g, 'await new Promise(r => setTimeout(r, $1));');
         jsCode = jsCode.replace(/system\.stop\.minutes\s*\(([\s\S]*?)\);?/g, 'await new Promise(r => setTimeout(r, $1 * 60000));');
@@ -311,10 +528,25 @@
         jsCode = jsCode.replace(/\breturn\s+/g, 'return ');
         jsCode = jsCode.replace(/wait\.ms\s*\(([\s\S]*?)\);?/g, 'await new Promise(r => setTimeout(r, $1));');
         jsCode = jsCode.replace(/.all\s*\(([\s\S]*?)\);?/g, 'Promise.all($1);');
-        
-
-
-            jsCode = jsCode.replace(/\bawait\s+/g, 'await ');
+        jsCode = jsCode.replace(/in\.main\.web\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+         jsCode = jsCode.replace(/in\.main\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        jsCode = jsCode.replace(/in\.main\.linux32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        jsCode = jsCode.replace(/in\.main\.mac64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.linux64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.win32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.win64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.docker\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.sh\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.bat\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.app\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+           jsCode = jsCode.replace(/class\s*\({[\s\S]*?}\);?/g, 'class $1');
+        jsCode = jsCode.replace(/new\s*\({[\s\S]*?}\);?/g, 'new $1');
+         jsCode = jsCode.replace(/public\s*\({[\s\S]*?}\);?/g, '$1');
+          jsCode = jsCode.replace(/private\s*\({[\s\S]*?}\);?/g, '#$1');
+           jsCode = jsCode.replace(/void\s*\({[\s\S]*?}\);?/g, '$1');
+            jsCode = jsCode.replace(/static\s*\({[\s\S]*?}\);?/g, 'static $1');
+           jsCode = jsCode.replace(/\bawait\s+/g, 'await ');
             jsCode = jsCode.replace(/wait\.ms\s*\(([\s\S]*?)\);?/g, 'await Task.Delay($1);');
         console.log("[PHASE 6] Final validation and unknown command check...");
         const unknownCommandRegex = null;
@@ -335,17 +567,33 @@
 
     const compiler = {};
 
-    compiler.add = async function() {
+    // Klasör yolu parametresi ile dosya ekleme
+    compiler.add = async function(folderPath) {
         try {
-            const dirHandle = await global.showDirectoryPicker();
-            sessionStorage.clear();
-            extractedHTMLCache = "";
+            // IndexedDB'yi başlat
+            await initializeIndexedDB();
             
-            console.log("Analyzing directory...");
-            await _traverseDirectory(dirHandle);
-            console.log("Files loaded. Compile with: 'compiler.start()'.");
+            if (!folderPath) {
+                // Browser ortamında klasör seçici kullan
+                if (typeof window !== 'undefined' && window.showDirectoryPicker) {
+                    const dirHandle = await window.showDirectoryPicker();
+                    sessionStorage.clear();
+                    extractedHTMLCache = "";
+                    console.log("Analyzing directory...");
+                    await _traverseDirectory(dirHandle);
+                    console.log("Files loaded. Compile with: 'compiler.start()'.");
+                } else {
+                    console.error("Directory picker not available and no path provided");
+                }
+            } else {
+                sessionStorage.clear();
+                extractedHTMLCache = "";
+                console.log(`[ADD] Processing folder: ${folderPath}`);
+                await _traverseDirectory(folderPath);
+                console.log("Files loaded and stored in IndexedDB. Compile with: 'compiler.start()'.");
+            }
         } catch (e) {
-            console.error("Directory selection error:", e);
+            console.error("Directory processing error:", e);
         }
     };
 
@@ -370,7 +618,7 @@ ${jsBody}
 `;
 
             console.log("%c[COMPILATION SUCCESSFUL]", "color: lime; font-weight: bold;");
-            console.log("Download with: 'compiler.download()'.");
+            console.log("Download with: 'compiler.download(downloadPath)'.");
             if(extractedHTMLCache) console.log(">> GUI Interface Detected <<");
 
         } catch (e) {
@@ -378,29 +626,86 @@ ${jsBody}
         }
     };
 
-    compiler.download = function(filename = "main.js") {
+    // Klasör yoluna indirme
+    compiler.download = async function(downloadPath, filename = "main.cs") {
         if (!compiledJSCache) {
             console.error("Please run 'compiler.start()' first!");
             return;
         }
 
-        console.log("Downloading File...");
-        _downloadFile(filename, compiledJSCache);
+        try {
+            console.log("Downloading C# File...");
+            const success = await _downloadFile(filename, compiledJSCache, downloadPath);
+            
+            if (!success && downloadPath) {
+                console.error("Download failed. Check file system permissions.");
+                return;
+            }
 
-        if (extractedHTMLCache.trim() !== "") {
-            console.log("Downloading Config File...");
-            const htmlContent = `
+            if (extractedHTMLCache.trim() !== "") {
+                console.log("Downloading Config File...");
+                const htmlContent = `
+                <script src="runtime.js"></script>
+                <script src="main.js"></script>
+
 ${extractedHTMLCache}
 `;
-            _downloadFile("index.html", htmlContent);
+                await _downloadFile("index.html", htmlContent, downloadPath);
+            }
+
+            // İndirmeden sonra IndexedDB'den dosyaları sil
+            if (downloadPath) {
+                console.log("[CLEANUP] Deleting files from IndexedDB...");
+                await deleteFilesFromIndexedDB(downloadPath);
+                console.log("[CLEANUP] IndexedDB cleaned successfully.");
+            }
+
+        } catch (e) {
+            console.error("Download error:", e);
         }
     };
 
-    compiler.compile = async function() {
+    // Toplu derleme
+    compiler.compile = async function(folderPath, downloadPath) {
         console.log(`%c[BATCH COMPILATION START]`, "color: yellow; font-weight: bold;");
-        await compiler.add();
+        await compiler.add(folderPath);
         await compiler.start();
+        if (downloadPath) {
+            await compiler.download(downloadPath);
+        }
         console.log(`%c[BATCH COMPILATION COMPLETE]`, "color: yellow; font-weight: bold;");
+    };
+
+    // IndexedDB durum kontrolü
+    compiler.getIndexedDBStatus = async function(folderPath) {
+        try {
+            if (!db) {
+                await initializeIndexedDB();
+            }
+            const files = await getAllFilesFromIndexedDB(folderPath);
+            return {
+                success: true,
+                count: files.length,
+                files: files
+            };
+        } catch (e) {
+            return {
+                success: false,
+                error: e.message
+            };
+        }
+    };
+
+    // IndexedDB'den manuel silme
+    compiler.clearIndexedDB = async function(folderPath) {
+        try {
+            await deleteFilesFromIndexedDB(folderPath);
+            console.log(`[INFO] IndexedDB cleared for path: ${folderPath}`);
+            return { success: true };
+        } catch (e) {
+            console.error("Clear error:", e);
+            return { success: false, error: e.message };
+        }
     };
 
     global.compiler = compiler;

@@ -118,14 +118,17 @@
         const fs = getFileSystem();
         
         if (fs && downloadPath) {
+            // Electron ortamında - dosya sistemine yaz
             try {
                 const path = require('path');
                 const filePath = path.join(downloadPath, filename);
+                
+                // Klasör oluştur (varsa yok say)
                 const dir = path.dirname(filePath);
                 try {
                     await fs.mkdir(dir, { recursive: true });
                 } catch (e) {
-                
+                    // Klasör zaten var
                 }
                 
                 await fs.writeFile(filePath, text, 'utf-8');
@@ -136,6 +139,7 @@
                 return false;
             }
         } else {
+            // Browser ortamında - indirme dialogu
             const element = document.createElement('a');
             let mimeType = 'text/plain';
             if(filename.endsWith('.html')) mimeType = 'text/html';
@@ -304,26 +308,39 @@
                 const beforeCode = jsCode;
                 console.log(`[PASS ${passCount}] Processing...`);
                 const macros = [];
+                
+                // YENİ SYNTAX: cmd.fn() [ pattern ;cmd() template ]
                 const macroRegex = /cmd\.fn\(\)\s*\[\s*([\s\S]*?)\s*;cmd\(\)\s*([\s\S]*?)\s*\]/g;
                 jsCode = jsCode.replace(macroRegex, (match, pattern, template) => {
                     macros.push({ pattern: pattern.trim(), template: template.trim() });
                     return "";
                 });
 
+                // Makroları uygula - HER MAKRO TÜM EŞLEŞMELERDE UYGULANIR
                 for (const macro of macros) {
+                    // Önce pattern'i regex-safe hale getir
                     let regexPattern = macro.pattern;
+                    
+                    // ${...} değişkenlerini bul ve sakla
                     const varMatches = regexPattern.match(/\$\{(\w+)\}/g) || [];
+                    
+                    // Değişken isimleri ve grup numaralarını eşleştir
                     let groupIndex = 1;
                     const varMap = {};
                     
                     varMatches.forEach(varMatch => {
                         const varName = varMatch.slice(2, -1); // ${out} -> out
                         varMap[varName] = `$${groupIndex}`;
+                        
+                        // ${var} yerine geçici placeholder koy
                         regexPattern = regexPattern.replace(varMatch, `__VAR_${groupIndex}__`);
                         groupIndex++;
                     });
                     
+                    // Özel regex karakterlerini escape et (ama placeholder'ları koru)
                     regexPattern = regexPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    
+                    // Placeholder'ları non-greedy capture gruplarına çevir
                     for (let i = 1; i < groupIndex; i++) {
                         regexPattern = regexPattern.replace(
                             `__VAR_${i}__`, 
@@ -374,18 +391,7 @@
         console.log("[PHASE 2] Transpiling syntax...");
   
         jsCode = jsCode.replace(/in\.main\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/in\.main\.app\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/in\.main\.linux64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/in\.main\.mac64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/in\.main\.linux32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.win32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.win64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.docker\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.sh\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.bat\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.web\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.app\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/in\.main\.mobile\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.cs\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
 
         jsCode = jsCode.replace(/oldcommand1\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
             'string $2 = await fetch("$1").then(r => r.json());');
@@ -421,9 +427,7 @@
 
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
         jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
-        jsCode = jsCode.replace(/do \s*\{([\s\S]*?)\};?/g, 'do {$1}');
-         jsCode = jsCode.replace(/try \s*\{([\s\S]*?)\};?/g, 'try {$1}');
-         jsCode = jsCode.replace(/finally \s*\{([\s\S]*?)\};?/g, 'finally {$1}');
+        jsCode = jsCode.replace(/if \s*\{([\s\S]*?)\};?/g, 'do {$1}');
         jsCode = jsCode.replace(/^\s*static\s+int256\s+([a-zA-Z0-9_]+)\s*=\s*([0-9]+);?/gm, 
             (match, varName, value) => {
                 const num = BigInt(value);
@@ -545,10 +549,8 @@
             }
         );
 
-         jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'int $1 = $2;');
+          jsCode = jsCode.replace(/^\s*int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'int $1 = $2;');
         jsCode = jsCode.replace(/system\.os\s*\(([\s\S]*?)\);?/g, '"app"');
-        jsCode = jsCode.replace(/console\.println\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
-        jsCode = jsCode.replace(/catch\(([\s\S]*?)\);?/g, 'catch ($1);');
         jsCode = jsCode.replace(/text\s*\(([\s\S]*?)\);?/g, '"$1"');
         jsCode = jsCode.replace(/^\s*int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int16 $1 = $2;');
         jsCode = jsCode.replace(/^\s*redata\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, ' $1 = $2;');
@@ -557,13 +559,11 @@
         jsCode = jsCode.replace(/^\s*int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int32 $1 = $2;');
         jsCode = jsCode.replace(/^\s*int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int64 $1 = $2;');
         jsCode = jsCode.replace(/^\s*int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'Int128 $1 = $2;');
-        jsCode = jsCode.replace(/^\s*double\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'double $1 = $2;');
+        jsCode = jsCode.replace(/^\s*intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'double $1 = $2;');
         jsCode = jsCode.replace(/^\s*string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'string $1 = $2;');
         jsCode = jsCode.replace(/^\s*char\.i09\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'char.IsDigit');
-        jsCode = jsCode.replace(/^\s*bool\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'bool $1 = $2;');
-        jsCode = jsCode.replace(/^\s*float\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'float $1 = $2;');
-        jsCode = jsCode.replace(/^\s*decimal\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'decimal $1 = $2;');
-        jsCode = jsCode.replace(/cmd\.nr\(([\s\S]*?)\);?/g, '$1;');
+        jsCode = jsCode.replace(/^\s*ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'bool $1 = $2;');
+        jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/alert\.data\(([\s\S]*?)\);?/g, 'Console.WriteLine($1);');
         jsCode = jsCode.replace(/get\s*\(([\s\S]*?)\);?/g, 'await client.GetFromJsonAsync($1);');
         jsCode = jsCode.replace(/read\.int32\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt32(Console.ReadLine($1));');
@@ -574,12 +574,10 @@
         jsCode = jsCode.replace(/to\.int64\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt64($1);');
         jsCode = jsCode.replace(/to\.int128\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt128($1);');
         jsCode = jsCode.replace(/to\.string\s*\(([\s\S]*?)\);?/g, 'Convert.ToString($1);');
-        jsCode = jsCode.replace(/to\.double\s*\(([\s\S]*?)\);?/g, 'Convert.ToDouble($1);');
-                        jsCode = jsCode.replace(/to\.decimal\s*\(([\s\S]*?)\);?/g, 'Convert.ToDecimal($1);');
-                        jsCode = jsCode.replace(/to\.float\s*\(([\s\S]*?)\);?/g, 'Convert.ToSingle($1);');
+        jsCode = jsCode.replace(/to\.intx\s*\(([\s\S]*?)\);?/g, 'Convert.ToDouble($1);');
         jsCode = jsCode.replace(/to\.byte\s*\(([\s\S]*?)\);?/g, 'Convert.ToSByte($1);');
-        jsCode = jsCode.replace(/to\.bool\s*\(([\s\S]*?)\);?/g, 'Convert.ToBoolean($1);');
-        jsCode = jsCode.replace(/to\.utf8\.byte\s*\(([\s\S]*?)\);?/g, 'Encoding.UTF8.GetBytes($1);');
+        jsCode = jsCode.replace(/to\.ft\s*\(([\s\S]*?)\);?/g, 'Convert.ToBoolean($1);');
+        jsCode = jsCode.replace(/converter\.utf8\.byte\s*\(([\s\S]*?)\);?/g, 'Encoding.UTF8.GetBytes($1);');
         jsCode = jsCode.replace(/to\.base64\s*\(([\s\S]*?)\);?/g, 'Convert.ToBase64String($1);');
         jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt16(Console.ReadLine($1));');
         jsCode = jsCode.replace(/read\.int64\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt64(Console.ReadLine($1));');
@@ -593,21 +591,19 @@
         jsCode = jsCode.replace(/else if \s*\({[\s\S]*?}\);?/g, 'else if {$1}');
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
         jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
-        jsCode = jsCode.replace(/do \s*\{([\s\S]*?)\};?/g, 'do {$1}');
-        jsCode = jsCode.replace(/^\s*const\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const int $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+decimal\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const decimal $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+float\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const float $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const Int16 $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const Int32 $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+Int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const Int64 $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const Int128 $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const int $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+double\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const double $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const string $1 = $2;');
-        jsCode = jsCode.replace(/^\s*const\s+bool\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const bool $1 = $2;');
+        jsCode = jsCode.replace(/if \s*\{([\s\S]*?)\};?/g, 'do {$1}');
+        jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const int $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int16\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const Int16 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int32\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const Int32 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+Int64\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const Int64 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int128\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const Int128 $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+int\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const int $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+intx\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const double $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+string\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const string $1 = $2;');
+        jsCode = jsCode.replace(/^\s*static\s+ft\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'const bool $1 = $2;');
         jsCode = jsCode.replace(/console\.error\(([\s\S]*?)\);?/g, 'Console.Error.WriteLine($1);');
         jsCode = jsCode.replace(/system\.beep\(([\s\S]*?)\);?/g, 'Console.Beep($1);');
-        jsCode = jsCode.replace(/console\.print\(([\s\S]*?)\);?/g, 'Console.Write($1);');
+        jsCode = jsCode.replace(/read\.title\(([\s\S]*?)\);?/g, 'Console.Write($1);');
         jsCode = jsCode.replace(/open\.file\(([\s\S]*?)\);?/g, 'File.ReadAllText($1);');
         jsCode = jsCode.replace(/open\.folder\(([\s\S]*?)\);?/g, 'Path.GetFullPath($1);');
         jsCode = jsCode.replace(/.list\.add\(([\s\S]*?)\);?/g, '.Add($1);');
@@ -680,12 +676,8 @@
         jsCode = jsCode.replace(/\basync\.void\s+([\w\d]+)\s*\((.*?)\)/g, 'public async Task $1($2)');
         jsCode = jsCode.replace(/\basync\.task\s+([\w\d]+)\s*\((.*?)\)/g, 'public async Task $1($2)');
         jsCode = jsCode.replace(/console\.color\s*\("(.*?)"\);?/g, 'Console.ForegroundColor = ConsoleColor.$1;');
-        jsCode = jsCode.replace(/class\s*\({[\s\S]*?}\);?/g, 'class $1');
-        jsCode = jsCode.replace(/new\s*\({[\s\S]*?}\);?/g, 'new $1');
-         jsCode = jsCode.replace(/public\s*\({[\s\S]*?}\);?/g, 'public $1');
-          jsCode = jsCode.replace(/private\s*\({[\s\S]*?}\);?/g, 'private $1');
-           jsCode = jsCode.replace(/void\s*\({[\s\S]*?}\);?/g, 'void $1');
-            jsCode = jsCode.replace(/static\s*\({[\s\S]*?}\);?/g, 'static $1');
+        jsCode = jsCode.replace(/in\.main\.mobile\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        
 
 
             jsCode = jsCode.replace(/\bawait\s+/g, 'await ');
@@ -728,6 +720,7 @@
                     console.error("Directory picker not available and no path provided");
                 }
             } else {
+                // Electron ortamında klasör yolu kulllan
                 sessionStorage.clear();
                 extractedHTMLCache = "";
                 console.log(`[ADD] Processing folder: ${folderPath}`);
@@ -760,7 +753,7 @@ using System;
 using System.IO;                       
 using System.Threading;               
 using System.Collections.Generic;    
-using System.Linq;                     
+using System.Linq;  
 ${jsBody}
 `;
 

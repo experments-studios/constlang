@@ -261,7 +261,7 @@
         shCode = shCode.replace(/string\.length\(([\s\S]*?)\);?/g, '${#$1}');
         shCode = shCode.replace(/string\.concat\(([\s\S]*?),([\s\S]*?)\);?/g, '"$1$2"');
         shCode = shCode.replace(/string\.join\(([\s\S]*?),([\s\S]*?)\);?/g, 'printf "%s$1" $2');
-
+         
         // PHASE 6: Array/List işlemleri
         console.log("[PHASE 6] Array operations...");
         shCode = shCode.replace(/\.list\.add\(([\s\S]*?)\);?/g, 'list+=("$1")');
@@ -324,7 +324,7 @@
         shCode = shCode.replace(/!=\s*/g, ' != ');
         shCode = shCode.replace(/<\s*/g, ' -lt ');
         shCode = shCode.replace(/>\s*/g, ' -gt ');
-
+        
         // PHASE 12: Function declarations
         console.log("[PHASE 12] Function declarations...");
         shCode = shCode.replace(/\bfunc\.void\s+([\w\d]+)\s*\((.*?)\)\s*{/g, '$1() {\n\t# Function: $1($2)');
@@ -333,7 +333,18 @@
         // PHASE 13: Static declarations
         console.log("[PHASE 13] Static declarations...");
         shCode = shCode.replace(/^\s*static\s+([a-zA-Z0-9_]+)\s*=\s*(.*);?/gm, 'declare -r $1=$2');
-
+        shCode = shCode.replace(/in\.main\.mac64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        shCode = shCode.replace(/in\.main\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        shCode = shCode.replace(/in\.main\.mac64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        shCode = shCode.replace(/in\.main\.linux32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        shCode = shCode.replace(/in\.main\.linux64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        shCode = shCode.replace(/in\.main\.win32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        shCode = shCode.replace(/in\.main\.win64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        shCode = shCode.replace(/in\.main\.docker\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        shCode = shCode.replace(/in\.main\.sh\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        shCode = shCode.replace(/in\.main\.bat\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        shCode = shCode.replace(/in\.main\.web\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        shCode = shCode.replace(/in\.main\.app\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
         // PHASE 14: Header ekleme
         console.log("[PHASE 14] Adding header...");
         if (!shCode.includes('#!/bin/bash')) {

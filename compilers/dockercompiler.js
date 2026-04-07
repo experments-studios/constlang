@@ -375,16 +375,15 @@
   
         jsCode = jsCode.replace(/in\.main\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
         jsCode = jsCode.replace(/in\.main\.app\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/in\.main\.linux64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
-        jsCode = jsCode.replace(/in\.main\.mac64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
+        jsCode = jsCode.replace(/in\.main\.linux64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.mac64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
         jsCode = jsCode.replace(/in\.main\.linux32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
         jsCode = jsCode.replace(/in\.main\.win32\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
         jsCode = jsCode.replace(/in\.main\.win64\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.docker\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
+        jsCode = jsCode.replace(/in\.main\.docker\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
         jsCode = jsCode.replace(/in\.main\.sh\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
         jsCode = jsCode.replace(/in\.main\.bat\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
         jsCode = jsCode.replace(/in\.main\.web\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
-        jsCode = jsCode.replace(/in\.main\.app\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '$1');
         jsCode = jsCode.replace(/in\.main\.mobile\s*\(\s*\)\s*\{([\s\S]*?)\}/g, '');
 
         jsCode = jsCode.replace(/oldcommand1\s*\(\s*["']?(.*?)["']?\s*\)\s*\{\s*data\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\}/g, 
@@ -575,11 +574,9 @@
         jsCode = jsCode.replace(/to\.int128\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt128($1);');
         jsCode = jsCode.replace(/to\.string\s*\(([\s\S]*?)\);?/g, 'Convert.ToString($1);');
         jsCode = jsCode.replace(/to\.double\s*\(([\s\S]*?)\);?/g, 'Convert.ToDouble($1);');
-                        jsCode = jsCode.replace(/to\.decimal\s*\(([\s\S]*?)\);?/g, 'Convert.ToDecimal($1);');
-                        jsCode = jsCode.replace(/to\.float\s*\(([\s\S]*?)\);?/g, 'Convert.ToSingle($1);');
         jsCode = jsCode.replace(/to\.byte\s*\(([\s\S]*?)\);?/g, 'Convert.ToSByte($1);');
         jsCode = jsCode.replace(/to\.bool\s*\(([\s\S]*?)\);?/g, 'Convert.ToBoolean($1);');
-        jsCode = jsCode.replace(/to\.utf8\.byte\s*\(([\s\S]*?)\);?/g, 'Encoding.UTF8.GetBytes($1);');
+        jsCode = jsCode.replace(/converter\.utf8\.byte\s*\(([\s\S]*?)\);?/g, 'Encoding.UTF8.GetBytes($1);');
         jsCode = jsCode.replace(/to\.base64\s*\(([\s\S]*?)\);?/g, 'Convert.ToBase64String($1);');
         jsCode = jsCode.replace(/read\.int16\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt16(Console.ReadLine($1));');
         jsCode = jsCode.replace(/read\.int64\s*\(([\s\S]*?)\);?/g, 'Convert.ToInt64(Console.ReadLine($1));');
@@ -589,8 +586,16 @@
         jsCode = jsCode.replace(/read\.base64\s*\(([\s\S]*?)\);?/g, 'Convert.ToBase64String(Console.ReadLine($1));');
         jsCode = jsCode.replace(/open\.window\s*\(([\s\S]*?)\);?/g, 'Process.Start($1);');
         jsCode = jsCode.replace(/if \s*\(([\s\S]*?)\);?/g, 'if ($1)');  
+           jsCode = jsCode.replace(/class\s*\({[\s\S]*?}\);?/g, 'class $1');
+        jsCode = jsCode.replace(/new\s*\({[\s\S]*?}\);?/g, 'new $1');
+         jsCode = jsCode.replace(/public\s*\({[\s\S]*?}\);?/g, 'public $1');
+          jsCode = jsCode.replace(/private\s*\({[\s\S]*?}\);?/g, 'private $1');
+           jsCode = jsCode.replace(/void\s*\({[\s\S]*?}\);?/g, 'void $1');
+            jsCode = jsCode.replace(/static\s*\({[\s\S]*?}\);?/g, 'static $1');
         jsCode = jsCode.replace(/else \s*\(([\s\S]*?)\);?/g, 'else ($1)');
         jsCode = jsCode.replace(/else if \s*\({[\s\S]*?}\);?/g, 'else if {$1}');
+        jsCode = jsCode.replace(/to\.decimal\s*\(([\s\S]*?)\);?/g, 'Convert.ToDecimal($1);');
+        jsCode = jsCode.replace(/to\.float\s*\(([\s\S]*?)\);?/g, 'Convert.ToSingle($1);');
         jsCode = jsCode.replace(/while \s*\(([\s\S]*?)\);?/g, 'while ($1)');
         jsCode = jsCode.replace(/for \s*\(([\s\S]*?)\);?/g, 'for ($1)');
         jsCode = jsCode.replace(/do \s*\{([\s\S]*?)\};?/g, 'do {$1}');
@@ -680,12 +685,7 @@
         jsCode = jsCode.replace(/\basync\.void\s+([\w\d]+)\s*\((.*?)\)/g, 'public async Task $1($2)');
         jsCode = jsCode.replace(/\basync\.task\s+([\w\d]+)\s*\((.*?)\)/g, 'public async Task $1($2)');
         jsCode = jsCode.replace(/console\.color\s*\("(.*?)"\);?/g, 'Console.ForegroundColor = ConsoleColor.$1;');
-        jsCode = jsCode.replace(/class\s*\({[\s\S]*?}\);?/g, 'class $1');
-        jsCode = jsCode.replace(/new\s*\({[\s\S]*?}\);?/g, 'new $1');
-         jsCode = jsCode.replace(/public\s*\({[\s\S]*?}\);?/g, 'public $1');
-          jsCode = jsCode.replace(/private\s*\({[\s\S]*?}\);?/g, 'private $1');
-           jsCode = jsCode.replace(/void\s*\({[\s\S]*?}\);?/g, 'void $1');
-            jsCode = jsCode.replace(/static\s*\({[\s\S]*?}\);?/g, 'static $1');
+        
 
 
             jsCode = jsCode.replace(/\bawait\s+/g, 'await ');
